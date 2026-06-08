@@ -45,6 +45,23 @@ def test_run_strength_config_small():
         assert r["n_eval_tournaments"] == 3 * 200
 
 
+def test_participant_count_field_boundary():
+    field = load_field(CONFIG)
+    cfg = simulate.make_elo_config(field)
+    # 8 participants x 6 teams = 48 exactly fills the field -> champion always owned
+    recs = simulate.run_strength_config(
+        cfg, ladders=["linear"], n_values=[6], policies=["ev_greedy"],
+        n_draws=2, sims_per_draw=200, seed=1, n_drafters=8,
+    )
+    assert recs[0]["champion_undrafted_rate"] == 0.0
+    # 8 x 7 = 56 > 48 -> guard raises
+    with pytest.raises(ValueError):
+        simulate.run_strength_config(
+            cfg, ladders=["linear"], n_values=[7], policies=["ev_greedy"],
+            n_draws=1, sims_per_draw=50, seed=1, n_drafters=8,
+        )
+
+
 def test_synthetic_config_concentration_monotone():
     # higher rating spread -> more title probability concentrated in the top 8
     # same seed + rating_stream -> same underlying z draw, so this isolates the spread effect

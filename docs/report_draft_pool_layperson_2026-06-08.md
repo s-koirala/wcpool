@@ -11,8 +11,9 @@ Two settings decide whether it's fair and fun:
    Round of 16, Quarter-final, Semi-final, Final, and winning).
 
 This keeps draft seats reasonably fair, makes ties rare, and rewards good drafting — without
-reducing the pool to "who got the champion." Basis: the tournament simulated 50,000 times
-under each rule set.
+reducing the pool to "who got the champion." The same settings hold for 7 or 8 players, with
+a growing first-pick advantage the only real change (§3f). Basis: the tournament simulated
+50,000 times under each rule set.
 
 ## 1. How we tested it
 
@@ -85,6 +86,32 @@ grows with a top-heavy field — and the 2026 field is top-heavy.
 
 A "shark" drafting cleverly did no better than just taking the best available team, under
 every system. Simple drafting is fine.
+
+### 3f. What if 7 or 8 people play?
+
+The conclusions don't change — same ladder ordering, same recommendation. Holding 6 teams
+each and only adding players (real 2026 field, Building ladder unless noted):
+
+| | 6 players | 7 players | 8 players |
+|---|---|---|---|
+| Skill | 0.22 | 0.25 | 0.27 |
+| First pick's edge over a fair share | 1.9× | 2.3× | 2.6× |
+| Tie rate | 5% | 5% | 5% |
+
+- **The first-pick advantage grows** — the main thing that changes. Each player's fair
+  share shrinks (1-in-6 → 1-in-8) while grabbing the single best team is just as valuable,
+  so going first matters more: ~1.9× a fair share at 6 players rises to ~2.6× at 8 (and to
+  ~3× under the steep "Doubling" ladder).
+- **Skill rises slightly.** With more players each drafting 6 teams, more of the 48-team
+  field is owned, so the luck-driven swings in each score shrink (the tournament-noise part
+  drops ~20% from 6 to 8 players) and the better drafter is rewarded a bit more. It's a
+  small but genuine effect — not a quirk of comparing more players — and the pool stays
+  mostly luck.
+- **Ties and the ladder order hold** for Building and Doubling; only the flat "Steady"
+  ladder gets more tie-prone with more players (18% → 22%).
+
+So 7 or 8 works fine. The growing first-pick advantage is the main reason to keep the group
+smaller, set a clear pick order, or use an auction (§5) as you scale up.
 
 ## 4. What it means
 

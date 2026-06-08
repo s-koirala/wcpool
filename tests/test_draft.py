@@ -51,6 +51,8 @@ def test_draft_generalises_to_participant_count(p):
     drafted = rosters[rosters >= 0]
     assert len(drafted) == p * 6  # all picks made
     assert len(set(drafted.tolist())) == p * 6  # no team drafted twice
+    # value-ordering holds for any P: the first overall pick is the highest-EV team
+    assert rosters[0, 0] == int(np.argmax(ev))
     wp = metrics.win_probability(metrics.pool_scores(rng.random((200, 48)), rosters))
     assert wp.shape == (p,)
     assert wp.sum() == pytest.approx(1.0)  # win prob distributes over all participants

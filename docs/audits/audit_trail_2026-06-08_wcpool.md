@@ -85,3 +85,28 @@ Verification at exit: report renders to a self-contained HTML (3 figures inlined
 refs); no stray "39%"; every quantitative claim reproduces from the committed
 `results_main_2026-06-08.csv`; external references re-checked against their sources; renderer
 ruff-clean.
+
+---
+
+# Addendum — participant-count extension (6 vs 7 vs 8)
+
+Parametrised the pool size (`n_drafters`, default 6) and added a controlled 6/7/8-participant
+sweep ([participant_sweep](../tables/participant_sweep_2026-06-08.csv)). Audited for
+**calculations (quant) + coding** per request. One round; no critical/major *code* defects —
+the two majors were reporting-rigor issues, now fixed.
+
+| # | Sev | Auditor | Finding | Disposition |
+|---|-----|---------|---------|-------------|
+| P1 | M | quant | Cross-P comparison is *paired* (fixed `cfg_id` → identical tournaments per draw); shipping only per-P cluster SE understated significance (geometric naive z≈1.8 vs paired z≈5.1) | FIXED — sweep now computes the paired Δ-vs-6 with a between-draw paired SE and z; `run_strength_config` gained `return_per_draw` to expose the per-draw arrays |
+| P2 | M | quant | "Skill rises because more teams get drafted" was mechanistically incomplete | FIXED — report + assumptions §10 now state the driver (within-tournament-noise variance falls ~22%, raising the skill-variance ratio); sweep emits `var_between`/`var_within`/`skill_var_share` by P |
+| P3 | m | quant | Spearman-cardinality artifact (ρ over 6 vs 8 ranked items) not explicitly ruled out | FIXED — auditor's SNR-frozen surrogate shows cardinality alone moves ρ <0.01 (negative for geometric); the cardinality-free variance-share rises identically. Stated in assumptions §10 (+ plain note in report §3f) |
+| P4 | m | quant | Per-ladder over-generalisation ("first-seat ~constant", "champion-dominance unchanged") | FIXED — scoped per ladder (geometric slot-1 mildly *falls*; champion-dominance flat only for geometric, +5 pp triangular) in report + assumptions |
+| P5 | m | quant | No regression test pinning the exactly-full field boundary | FIXED — test asserts P=8×6 → champion-undrafted = 0 and P=8×7 raises the guard |
+| P6 | m | code | `win_probability` sum-to-1 assertion is near-tautological (no P-discriminating power) | FIXED — added a value-ordering assertion (first overall pick = argmax EV) for P∈{6,7,8} |
+| P7 | m | code | `_finalize` emits ragged `slotN_win_prob` columns across different P | DOCUMENTED — `run_strength_config` docstring notes the column count = `n_drafters`; the sweep reads only `slot1` so its CSV is well-formed |
+
+Verification: 40 tests pass; ruff-clean; P=6 sweep rows reproduce the committed 6-player
+results exactly (backward-compatible); paired z-scores and variance components match the
+auditor's independent recomputation. Conclusion: **adding participants does not change the
+recommendation**; skill rises modestly (significant, paired) and the first-pick advantage
+grows (1.9×→2.6× fair share, triangular).

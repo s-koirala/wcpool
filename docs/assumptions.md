@@ -190,6 +190,22 @@ Exact, prescribed (no free constants); a group-stage exit scores 0 under all thr
   ≈0.014 across N∈{4,5,6,8} ≈ 1.2× the between-draw cluster SE (≈0.012), whereas the
   cross-ladder gap (≈0.080) is ≈7× that SE. The ladder is the decisive lever; N is a free
   choice (N=8 drafts the full 48-team field).
+- **Participant count (6 vs 7 vs 8)** — [participant_sweep](tables/participant_sweep_2026-06-08.csv),
+  controlled comparison (fixed `cfg_id` → identical tournaments per draw across P; 6 teams
+  each, EV-greedy). The ladder ordering and recommendation are unchanged. Two real shifts:
+  (i) **the first-seat advantage grows** because the fair share falls (1/6→1/8) while the
+  absolute first-seat win prob is ~flat — slot-1 ÷ fair-share rises 1.9→2.3→2.6 (triangular)
+  and 2.3→2.7→3.0 (geometric). (ii) **Skill rises modestly** (triangular 0.222→0.248→0.266).
+  This is significant under the **paired** between-draw test the controlled design enables
+  (Δ vs 6 players: triangular z≈6.7, geometric z≈5.1, linear z≈3.3 at P=8) — the naive
+  independent-sample SE understates it. The driver is the **variance ratio**: per-drafter
+  within-tournament-noise variance falls ~22% (more of the field owned at fixed roster size)
+  while between-roster variance rises ~13–27%, so `skill_variance_share` rises
+  (0.092→0.128 geometric). The Spearman rise is **not a rank-cardinality artifact** — with
+  the variance ratio held fixed, cardinality alone moves ρ by <0.01 (negative for
+  geometric), and the cardinality-free `skill_variance_share` rises identically. Tie rate
+  rises with P only for linear (0.18→0.22); champion-dominance is flat for geometric, rises
+  ~5 pp for triangular, ~flat for linear.
 - **EV-greedy is *not* exploitable** by a one-ply greedy best-response: scored
   out-of-sample (best-responder decides on its model/EV batch, scored on a held-out batch),
   the slot-1 win-probability margin is uniformly slightly negative (−0.001 to −0.007),

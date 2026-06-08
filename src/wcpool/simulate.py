@@ -165,11 +165,18 @@ def run_strength_config(
     br_slot: int = 0,
     cfg_id: int = 0,
     n_drafters: int = N_DRAFTERS,
-) -> list[dict]:
+    return_per_draw: bool = False,
+):
     """Run all cells for one strength config; return tidy per-cell metric records.
 
     ``n_drafters`` (default 6) is the number of pool participants. Requires
-    ``n_drafters * max(n_values) <= 48`` (cannot draft more teams than exist).
+    ``n_drafters * max(n_values) <= 48`` (cannot draft more teams than exist). Each record
+    carries ``n_drafters`` ``slot{i}_win_prob`` columns, so records produced with different
+    ``n_drafters`` are ragged — align/fill before concatenating across participant counts.
+
+    If ``return_per_draw`` is True, also return ``{cell_key: per-draw spearman array}`` so
+    callers can compute *paired* between-draw statistics across runs that share ``cfg_id``
+    (and therefore the same simulated tournaments per draw).
     """
     if n_drafters * max(n_values) > N_TEAMS:
         raise ValueError(
@@ -228,7 +235,11 @@ def run_strength_config(
                     a.draw_slot_spread.append(M.slot_equity_imbalance(scores)["max_minus_min"])
 
     cfg.top8_title_share = float(np.mean(title_shares))
-    return _finalize(acc, cfg, regime, draws * per_draw, draws, br_slot)
+    records = _finalize(acc, cfg, regime, draws * per_draw, draws, br_slot)
+    if return_per_draw:
+        per_draw_skill = {key: np.array(a.draw_spearman) for key, a in acc.items()}
+        return records, per_draw_skill
+    return records
 
 
 def _cluster_se(per_draw_values) -> float:

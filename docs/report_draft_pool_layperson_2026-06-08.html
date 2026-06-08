@@ -40,8 +40,9 @@ Two settings decide whether it's fair and fun:</p>
    Round of 16, Quarter-final, Semi-final, Final, and winning).</li>
 </ol>
 <p>This keeps draft seats reasonably fair, makes ties rare, and rewards good drafting — without
-reducing the pool to "who got the champion." Basis: the tournament simulated 50,000 times
-under each rule set.</p>
+reducing the pool to "who got the champion." The same settings hold for 7 or 8 players, with
+a growing first-pick advantage the only real change (§3f). Basis: the tournament simulated
+50,000 times under each rule set.</p>
 <h2 id="1-how-we-tested-it">1. How we tested it</h2>
 <ul>
 <li>Give each of the 48 teams a strength rating (real published ratings; bigger gap = bigger
@@ -171,6 +172,54 @@ grows with a top-heavy field — and the 2026 field is top-heavy.</p>
 <h3 id="3e-you-cant-game-the-draft">3e. You can't game the draft</h3>
 <p>A "shark" drafting cleverly did no better than just taking the best available team, under
 every system. Simple drafting is fine.</p>
+<h3 id="3f-what-if-7-or-8-people-play">3f. What if 7 or 8 people play?</h3>
+<p>The conclusions don't change — same ladder ordering, same recommendation. Holding 6 teams
+each and only adding players (real 2026 field, Building ladder unless noted):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>6 players</th>
+<th>7 players</th>
+<th>8 players</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Skill</td>
+<td>0.22</td>
+<td>0.25</td>
+<td>0.27</td>
+</tr>
+<tr>
+<td>First pick's edge over a fair share</td>
+<td>1.9×</td>
+<td>2.3×</td>
+<td>2.6×</td>
+</tr>
+<tr>
+<td>Tie rate</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>The first-pick advantage grows</strong> — the main thing that changes. Each player's fair
+  share shrinks (1-in-6 → 1-in-8) while grabbing the single best team is just as valuable,
+  so going first matters more: ~1.9× a fair share at 6 players rises to ~2.6× at 8 (and to
+  ~3× under the steep "Doubling" ladder).</li>
+<li><strong>Skill rises slightly.</strong> With more players each drafting 6 teams, more of the 48-team
+  field is owned, so the luck-driven swings in each score shrink (the tournament-noise part
+  drops ~20% from 6 to 8 players) and the better drafter is rewarded a bit more. It's a
+  small but genuine effect — not a quirk of comparing more players — and the pool stays
+  mostly luck.</li>
+<li><strong>Ties and the ladder order hold</strong> for Building and Doubling; only the flat "Steady"
+  ladder gets more tie-prone with more players (18% → 22%).</li>
+</ul>
+<p>So 7 or 8 works fine. The growing first-pick advantage is the main reason to keep the group
+smaller, set a clear pick order, or use an auction (§5) as you scale up.</p>
 <h2 id="4-what-it-means">4. What it means</h2>
 <p>One dial controls everything: how steep the scoring is.</p>
 <ul>

@@ -58,3 +58,30 @@ constraints and host home-advantage not modelled.
   goals-model calibration reproduces the Elo curve (RMSE < 0.02).
 - Determinism: identical seed → byte-identical results (verified by reproducibility-verifier).
 - Committed recommendation md numerically matches the committed 25-draw results CSV.
+
+---
+
+# Addendum — layperson report audit (`report_draft_pool_layperson_2026-06-08`)
+
+Separate deliverable: a non-technical report for pool organisers. Audited with 5 parallel
+specialists (quant number-fidelity, literature reference-validity, general layperson-
+readability, format consistency, code review of the HTML renderer). One round; exited with
+all critical/major findings remediated and verified by the lead.
+
+| # | Sev | Auditor | Finding | Disposition |
+|---|-----|---------|---------|-------------|
+| R1 | C | literature | "81% of pools use 1-2-4-8-16-32" misattributed — 81% is the *vanilla* (fixed-points-per-round) category; the doubling ladder specifically is ~70% | FIXED — split into "81% fixed-per-round, of which 1-2-4-8-16-32 ≈70%", re-cited to TeamRankings |
+| R2 | M | quant/general | The 0–1 "skill" number (Spearman) was framed as a fraction of outcome ("0.25 out of 1"), overstating skill ~3× | FIXED — relabelled as "does the better drafter tend to finish higher (rank agreement)"; added a variance-share row (~4/7/9%) and "the draft explains <10% of who wins" in §7 |
+| R3 | M | literature | Fibonacci ladder (2-3-5-8-13-21) misattributed to PrintYourBrackets | FIXED — re-cited to TeamRankings; added that PrintYourBrackets lists 1-3-6-10-15-20 ≈ our recommended "Building" ladder (real-world corroboration) |
+| R4 | M | general | "margin of error" and "chalk" used undefined | FIXED — both added to the §2 glossary; "chalk" also replaced with plain words in §9 |
+| R5 | M | general | Headline "8 each" presented as competitively superior, then hedged | FIXED — bottom line now leads with "it barely matters — your choice; we suggest 8 because…" |
+| R6 | m | quant/format | Doubling first-seat stated 39% (8-draw probe) vs 38% in the 50k main grid | FIXED — 38% everywhere, sourced from the main grid |
+| R7 | m | quant | "last seat is worst" — curve actually bottoms at the 5th seat (snake recovery) | FIXED — reworded to "later seats ~7%, toughest around the 5th" |
+| R8 | m | literature | progressive pick'em has linear *and* geometric variants | FIXED — both variants noted |
+| R9 | m | general/format | skill-scale concreteness; figure-1 colour dependence; "Building" used before defined; §11–12 academic; citation label casing; per-seat provenance | FIXED — added plain skill framing, colour-independent takeaway, forward-reference, "optional reading" labels, consistent citation labels, results_main added to §12 sources |
+| R10 | m | code | renderer robustness: case-sensitive img regex, unescaped title, `.html`-input overwrite footgun (the str.format-brace risk was confirmed a NON-issue) | FIXED — case-insensitive/query-tolerant regex, HTML-escaped title, overwrite guard |
+
+Verification at exit: report renders to a self-contained HTML (3 figures inlined, 0 broken
+refs); no stray "39%"; every quantitative claim reproduces from the committed
+`results_main_2026-06-08.csv`; external references re-checked against their sources; renderer
+ruff-clean.

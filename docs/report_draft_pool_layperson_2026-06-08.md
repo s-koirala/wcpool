@@ -9,9 +9,11 @@
 You and five friends are going to **draft** (pick) World Cup teams and score points as
 your teams advance. Two questions decide whether the pool is fun and fair:
 
-1. **How many teams should each person get?** → **8 each.** That uses up all 48 teams, so
-   everyone fields a full squad and the eventual champion is always on someone's roster.
-   (4, 5, or 6 each work just as well for competitiveness — see below — so pick by taste.)
+1. **How many teams should each person get?** → **It barely matters — it's your choice.**
+   The number of teams does not change who tends to win. We *suggest* **8 each**, because
+   with 6 players that uses all 48 teams, so everyone fields a full squad and the eventual
+   champion is always on someone's roster. But 4, 5, or 6 each are just as competitive —
+   pick whatever suits your group.
 
 2. **How many points for reaching each round?** → Use the **"Building" system:
    1, 3, 6, 10, 15, 21** points for reaching the Round of 32, Round of 16, Quarter-final,
@@ -58,6 +60,8 @@ case. Each comes with an everyday analogy.
 | **Champion dominance** | How often the person who drafted the eventual World Cup winner also wins the pool. | "Whoever owns the winning horse takes the whole pot." |
 | **Simulation** | Playing the whole tournament on a computer using realistic chances, over and over. | Rolling weighted dice thousands of times to see what usually happens. |
 | **Team rating (Elo)** | A single number for how strong a team is, like a chess rating. Bigger gap = bigger favourite. | A boxer's ranking: a higher-ranked fighter usually (not always) wins. |
+| **Margin of error** | The natural wobble in a simulated number from re-running it. If two numbers differ by less than this wobble, we treat them as a tie, not a real difference. | A bathroom scale that reads ±0.2 kg: 70.0 and 70.1 are "the same." |
+| **"Chalk"** | When the favourites simply win and there are no surprises. A "chalky" pool is always won by whoever grabbed the top teams. | Betting on every favourite and nothing else. |
 
 ---
 
@@ -85,10 +89,11 @@ confirm it's really 50-50.)
 for the 6 players and adds up everyone's points in every one of the 50,000 tournaments. Then
 we ask four simple questions (next section).
 
-**A tiny scoring example.** Suppose you used the recommended "Building" ladder
-(1, 3, 6, 10, 15, 21). If one of your teams gets knocked out in the quarter-final, that team
-earns you **6 points**. If another of your teams goes all the way and wins the World Cup, it
-earns you **21 points**. Your score is just the sum across all your teams.
+**A tiny scoring example.** Suppose you used the "Building" ladder, 1-3-6-10-15-21 (one of
+the three point systems we compare in §4, and the one we end up recommending). If one of
+your teams gets knocked out in the quarter-final, that team earns you **6 points**. If
+another of your teams goes all the way and wins the World Cup, it earns you **21 points**.
+Your score is just the sum across all your teams.
 
 ---
 
@@ -136,22 +141,31 @@ The picture tells one clear story: **the three goals pull against each other.** 
 toward more skill and fewer ties (down-right, the Doubling system), the markers turn yellow —
 meaning seats get *less* fair. You cannot max out all three at once.
 
+*(In words, ignoring colour: the markers that are best for skill and ties — bottom-right —
+are exactly the ones that are worst for seat fairness. That's the trade-off in a nutshell.)*
+
 ### 6b. The numbers, in plain terms
 
 For the real 2026 field, here is what each system delivers (averaged over the simulations):
 
 | | **Steady** (1-2-3-4-5-6) | **Building** (1-3-6-10-15-21) | **Doubling** (1-2-4-8-16-32) |
 |---|---|---|---|
-| **Does skill matter?** (0 = pure luck, 1 = pure skill) | 0.17 (mostly luck) | 0.22 | 0.25 (most skill) |
+| **Does the better drafter tend to finish higher?** (0 = no better than chance, 1 = always) | 0.17 (weak) | 0.22 (modest) | 0.25 (strongest) |
+| **Share of the result the draft actually explains** (the rest is luck) | ~4% | ~7% | ~9% |
 | **How often a tie at the top?** | **19%** (very common) | 5% | **0.1%** (almost never) |
-| **1st-seat win chance** (fair share = 16.7%) | 26% | 33% | **39%** |
-| **6th-seat win chance** (fair share = 16.7%) | 13% | 10% | **7%** |
+| **1st-seat win chance** (fair share = 16.7%) | 26% | 33% | **38%** |
+| **Last-seats win chance** (5th/6th; fair share = 16.7%) | 12–13% | 10% | **7%** |
 | **"Champion's owner wins the pool"** | 51% | 77% | **99.9%** |
 
-Reading the bottom rows: under **Doubling**, the person who drafts first wins **39%** of the
-time — more than double their fair 1-in-6 share — and the person who drafts last wins only
-**7%**. And whoever owns the champion wins the pool **99.9%** of the time, so every other
-pick is almost irrelevant. **Building** softens both problems while keeping ties rare.
+Two things to notice. First, the top two rows say the same thing two ways: **the draft is a
+weak lever** — even under Doubling, who you drafted explains only about **9%** of who wins
+the pool; the other ~90% is luck. (That first "0-to-1" row is just *how often the better
+drafter finishes higher*, not a percentage — see the glossary note on skill vs luck.)
+Second, the steeper the scoring, the more lop-sided the bottom rows get: under **Doubling**
+the person who drafts first wins **38%** of the time — more than double their fair 1-in-6
+share — the last seats win only **7%**, and whoever owns the champion wins **99.9%** of the
+time, so every other pick is almost irrelevant. **Building** softens all of this while
+keeping ties rare.
 
 ### 6c. Is the first seat really favoured? Yes — and worse with steeper scoring
 
@@ -159,9 +173,12 @@ pick is almost irrelevant. **Building** softens both problems while keeping ties
 
 Each line shows the chance of winning the pool by **draft seat** (1 = picks first … 6 =
 picks last). The grey dashed line is the fair 1-in-6 (16.7%). Under every system the first
-seat is favoured, but the **Doubling** system (right panel) is the most lop-sided: the line
-slopes steeply from ~39% down to ~7%. **Building** (middle) is gentler; **Steady** (left) is
-the flattest (fairest) — but, as we saw, Steady pays for that fairness with frequent ties.
+seat is favoured, but the **Doubling** system (right panel) is the most lop-sided: the first
+seat sits near **38%** while the later seats sag to about **7%**. (Because the draft order
+"snakes" back and forth, the very last seat actually recovers a touch — the toughest seat is
+around the 5th — but either way the late seats are well below the early ones.) **Building**
+(middle) is gentler; **Steady** (left) is the flattest, i.e. fairest — but, as we saw,
+Steady pays for that fairness with frequent ties.
 
 ### 6d. Does the answer hold up if the favourites are stronger or weaker?
 
@@ -198,8 +215,10 @@ There is a single dial behind everything: **how steep the scoring is.**
   bunch up, producing **frequent ties**, and the contest leans more on luck.
 
 A crucial, honest point for everyone's expectations: **a 6-person World Cup pool is
-mostly luck no matter what you choose** (our "skill" numbers top out around 0.25 out of 1).
-The scoring choice nudges the balance; it does not turn the pool into a pure test of skill.
+mostly luck no matter what you choose.** Even with the most skill-rewarding scoring, *how
+well you drafted explains under 10% of who wins* — the other 90%-plus is the luck of which
+teams happen to go far. The scoring choice nudges that balance; it does not turn the pool
+into a real test of skill. (So treat it as a fun game, not a contest of expertise.)
 And **how many teams each person drafts barely matters at all** for competitiveness — the
 differences between 4, 5, 6, and 8 teams were too small to be real (within the margin of
 error). So choose the number of teams for convenience, and spend your attention on the
@@ -212,24 +231,26 @@ scoring ladder, which *does* matter.
 Draft and bracket pools are everywhere; the choices below are well documented. Our findings
 line up with — and sharpen — what these communities have learned.
 
-- **March Madness bracket pools (basketball).** The single most common scoring system,
-  used by an estimated **81% of pools**, is **1-2-4-8-16-32** — the *exact* "Doubling"
-  system we tested
-  ([PoolGenius/TeamRankings](https://poolgenius.teamrankings.com/ncaa-bracket-picks/articles/bracket-pool-scoring-systems-why-they-matter-how-to-exploit-them/)).
-  Some pools instead use a **Fibonacci** ladder (2-3-5-8-13-21), which — like our "Building"
-  system — deliberately makes the champion worth *much less* than 32× the first round, to
-  avoid the "it's all about the champion" problem
-  ([printyourbrackets](https://www.printyourbrackets.com/bracket-scoring.html)). Others add
-  **upset bonuses** (extra points for correctly picking a lower-seeded team to win). Our
-  result explains *why* communities drift toward Fibonacci-style ladders: the pure Doubling
-  ladder concentrates everything on one pick.
+- **March Madness bracket pools (basketball).** About **81% of pools use a fixed
+  "points-per-round" system**, and the most common single ladder is exactly the
+  **1-2-4-8-16-32** "Doubling" system we tested (used by roughly **70%** of pools)
+  ([TeamRankings](https://www.teamrankings.com/blog/ncaa-tournament/bracket-pool-scoring)).
+  Many pools deliberately pick a *gentler* ladder to avoid the "it's all about the champion"
+  problem — for example a **Fibonacci** ladder, 2-3-5-8-13-21
+  ([TeamRankings](https://www.teamrankings.com/blog/ncaa-tournament/bracket-pool-scoring)),
+  or **1-3-6-10-15-20**, which is essentially identical to our recommended "Building" ladder
+  ([PrintYourBrackets](https://www.printyourbrackets.com/bracket-scoring.html)). Others add
+  **upset bonuses** (extra points for correctly backing a lower-seeded underdog). Our result
+  explains *why* experienced communities drift toward these gentler ladders: the pure
+  Doubling ladder concentrates almost everything on a single pick.
 - **World Cup office "sweepstakes."** The classic office version draws team names **from a
   hat at random** — pure luck, no drafting and no skill at all
-  ([FourFourTwo sweepstake kit](https://www.fourfourtwo.com/competition/world-cup-2026-sweepstakes-kit-download-and-print-our-sweepstake-template)).
+  ([FourFourTwo](https://www.fourfourtwo.com/competition/world-cup-2026-sweepstakes-kit-download-and-print-our-sweepstake-template)).
   Fun and effortless, but the opposite of a skill contest.
 - **"Pick'em" and "progressive pick'em" pools.** Instead of drafting teams, players predict
-  match results; "progressive" versions pay more for later rounds (1 point in the group
-  stage, 2 in the next round, and so on — much like our "Steady" ladder)
+  match results; "progressive" versions pay more for later rounds. The basic version adds one
+  point per round (1, 2, 3, … — like our "Steady" ladder), while "extreme" versions double
+  each round (1, 2, 4, … — like our "Doubling" ladder)
   ([PoolTracker](https://www.pooltracker.com/game_info/world-cup.asp);
   [OfficePools](https://www2.officepools.com/fantasy-soccer/)).
 - **Auction / "Calcutta" pools.** Instead of taking turns, players **bid money** for teams;
@@ -250,14 +271,14 @@ can quietly go wrong when scoring is chosen arbitrarily rather than tested:
    scores to collide: in our tests the top of the table was a **tie 19% of the time** — about
    one pool in five ends in a draw and needs an awkward tiebreaker.
 2. **You can accidentally rig it for the first pick.** Steep numbers (like 1-2-4-8-16-32)
-   hand the first drafter a **39%** win chance — more than double everyone else's fair share
+   hand the first drafter a **38%** win chance — more than double everyone else's fair share
    — purely because of pick order, not skill.
 3. **You can accidentally make the whole pool a single coin-flip.** Under steep scoring, the
-   champion's owner wins **99.9%** of the time, so 47 of your 48 team-picks become
-   meaningless. One lucky pick decides everything.
-4. **You can accidentally make it all luck — or all "chalk."** Get the steepness wrong and
-   the pool is either decided by a single random result or always won by whoever grabbed the
-   top favourite. Neither is fun.
+   champion's owner wins **99.9%** of the time, so essentially **every pick except the one
+   eventual champion stops mattering**. One lucky pick decides everything.
+4. **You can accidentally make it all luck — or all favourites.** Get the steepness wrong
+   and the pool is either decided by a single random result, or simply always won by whoever
+   grabbed the top teams (no surprises, no real contest). Neither is fun.
 5. **What "feels balanced" depends on the teams.** The same point system behaves *differently*
    depending on how lopsided the field is (§6d). The 2026 field is top-heavy, which makes
    steep scoring more unfair than it would be in an even field — something you'd never notice
@@ -307,7 +328,7 @@ Pick a different ladder **only** if your group has a strong, specific preference
 
 ---
 
-## 11. Things to keep in mind (honest caveats)
+## 11. Things to keep in mind (honest caveats) — *optional reading*
 
 This is a model, and models simplify reality. None of these change the recommendation, but
 you should know them:
@@ -325,20 +346,21 @@ you should know them:
 
 ---
 
-## 12. Where these numbers come from
+## 12. Where these numbers come from — *optional reading*
 
 - **The full technical method, every assumption, and the data sources** are documented in
   the project's [assumptions file](assumptions.md) and the
   [audit trail](audits/audit_trail_2026-06-08_wcpool.md). The headline numbers in this report
   come from the simulation results in
-  [results_summary_2026-06-08.csv](tables/results_summary_2026-06-08.csv) and the
-  [recommendation](tables/recommendation_2026-06-08.md).
+  [results_main_2026-06-08.csv](tables/results_main_2026-06-08.csv) (the per-seat, tie, and
+  champion figures), [results_summary_2026-06-08.csv](tables/results_summary_2026-06-08.csv),
+  and the [recommendation](tables/recommendation_2026-06-08.md).
 - **Team strengths:** World Football Elo ratings (a chess-style rating system for national
   teams), snapshot dated 2026-06-01.
 - **Tournament format:** the official FIFA 2026 structure (48 teams, 12 groups, the 8
   best third-placed teams, and the published knockout bracket).
 - **Other pool systems referenced** in §8:
-  [PoolGenius/TeamRankings](https://poolgenius.teamrankings.com/ncaa-bracket-picks/articles/bracket-pool-scoring-systems-why-they-matter-how-to-exploit-them/),
+  [TeamRankings](https://www.teamrankings.com/blog/ncaa-tournament/bracket-pool-scoring),
   [PrintYourBrackets](https://www.printyourbrackets.com/bracket-scoring.html),
   [FourFourTwo](https://www.fourfourtwo.com/competition/world-cup-2026-sweepstakes-kit-download-and-print-our-sweepstake-template),
   [PoolTracker](https://www.pooltracker.com/game_info/world-cup.asp),

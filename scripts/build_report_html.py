@@ -10,11 +10,16 @@ Usage: uv run python scripts/build_report_html.py [path/to/report.md]
 from __future__ import annotations
 
 import base64
+import html as html_lib
 import re
 import sys
 from pathlib import Path
 
 import markdown
+
+# Match an <img src> pointing at a figures/*.png (any ./ or ../ prefix, case-insensitive,
+# tolerating a trailing ?query/#fragment). python-markdown always emits double-quoted attrs.
+_IMG_SRC = re.compile(r'src="((?:\.{1,2}/)*figures/[^"?#]+\.png)(?:[?#][^"]*)?"', re.IGNORECASE)
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MD = ROOT / "docs" / "report_draft_pool_layperson_2026-06-08.md"
@@ -58,15 +63,17 @@ def _inline_images(html: str, base_dir: Path) -> str:
         data = base64.b64encode(path.read_bytes()).decode("ascii")
         return f'src="data:image/png;base64,{data}"'
 
-    return re.sub(r'src="((?:\.\./)*figures/[^"]+\.png)"', repl, html)
+    return _IMG_SRC.sub(repl, html)
 
 
 def build(md_path: Path) -> Path:
+    if md_path.suffix.lower() == ".html":
+        raise SystemExit(f"input must be a markdown file, got {md_path}")
     text = md_path.read_text(encoding="utf-8")
     body = markdown.markdown(text, extensions=["tables", "fenced_code", "sane_lists", "toc"])
     body = _inline_images(body, md_path.parent)
-    headings = (ln.lstrip("# ").strip() for ln in text.splitlines() if ln.startswith("# "))
-    title = next(headings, "Report")
+    heads = (m.group(1).strip() for ln in text.splitlines() if (m := re.match(r"#\s+(.*)", ln)))
+    title = html_lib.escape(next(heads, "Report"))
     html = TEMPLATE.format(title=title, css=CSS, body=body)
     out = md_path.with_suffix(".html")
     out.write_text(html, encoding="utf-8")

@@ -10,7 +10,7 @@ The three design goals **conflict along one axis — ladder convexity**. The sam
 
 **N is second-order and statistically indistinguishable.** Within the triangular ladder, skill ranges only 0.014 across N in {4,5,6,8} = 1.2x the per-cell between-draw cluster SE (0.0117); the geometric-vs-linear skill gap is 0.080 = 7x that SE. Choose the ladder first; set N on practical grounds (N=8 drafts the full 48-team field with no stars left undrafted; smaller N leaves more teams unowned).
 
-Note: the between-draw cluster SE (~0.0117) is the correct precision here — the 50k per-cell tournaments are clustered within 25 draws, so the independent unit is the draw, not the sim. A naive iid SE would understate uncertainty roughly fourfold.
+Note: the between-draw cluster SE is the correct precision here — the 50k per-cell tournaments are clustered within the draws, so the independent unit is the draw, not the sim. A naive iid SE would understate uncertainty roughly fourfold.
 
 ## Per-ladder summary (anchor config, EV-greedy; mean over N, with cluster SE)
 

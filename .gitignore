@@ -12,6 +12,10 @@ artifacts/*.parquet
 docs/figures/*.png
 docs/figures/*.pdf
 
+# pip-freeze sidecars embed the editable-install absolute path (OS username); the freeze
+# SHA-256 is recorded in the committed repro-log JSON and the env is pinned by uv.lock.
+logs/reproducibility/env/
+
 # OS
 Thumbs.db
 .DS_Store

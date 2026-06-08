@@ -174,17 +174,19 @@ def main():
     out_dir = ROOT / "docs" / "tables"
     out_dir.mkdir(parents=True, exist_ok=True)
     today = date.today().isoformat()
+    # Tag smoke runs so a --quick run never overwrites the full 50k deliverable CSV.
+    tag = "_quick" if args.quick else ""
 
     print("Main grid:")
     df_main = run_main_grid(field, n_draws, sims_per_draw, args.seed, args.regime)
-    main_path = out_dir / f"results_main_{today}.csv"
+    main_path = out_dir / f"results_main{tag}_{today}.csv"
     df_main.to_csv(main_path, index=False)
     print(f"  wrote {main_path.relative_to(ROOT)} ({len(df_main)} rows)")
 
     if not args.no_bestresponse:
         print("Exploitability probe:")
         df_exp = run_exploitability(field, br_draws, br_sims, args.seed, args.regime)
-        exp_path = out_dir / f"results_exploitability_{today}.csv"
+        exp_path = out_dir / f"results_exploitability{tag}_{today}.csv"
         df_exp.to_csv(exp_path, index=False)
         print(f"  wrote {exp_path.relative_to(ROOT)} ({len(df_exp)} rows)")
 

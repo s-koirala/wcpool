@@ -167,6 +167,8 @@ class StrengthModel:
 
     ``home_idx``/``home_advantage`` add Elo points to designated host teams in every match
     (default off: a neutral-venue field, which is the cleaner basis for the design study).
+    No experiment config currently enables home advantage, so that path is unexercised and
+    untested; it is retained as an extensibility hook (β stays neutral; see ``calibrate_beta``).
     """
 
     ratings: np.ndarray

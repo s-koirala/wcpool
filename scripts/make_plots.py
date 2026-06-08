@@ -7,10 +7,13 @@ and writes:
   docs/figures/robustness_{date}.png           metrics vs favoritism concentration
   docs/figures/slot_equity_{date}.png          win prob by snake slot
   docs/tables/results_summary_{date}.csv       headline metrics, EV-greedy, per config
-  docs/tables/recommendation_{date}.md         Pareto-frontier recommendation + robustness
+  docs/tables/recommendation_{date}.md         ladder recommendation + robustness
 
-Recommendation uses a Pareto frontier in (skill up, tie-rate down, slot-imbalance down)
-space — no arbitrary cut-offs — then names the highest-skill non-dominated cell.
+The recommendation is made at the LADDER level (the statistically discriminating axis):
+each ladder is scored on three objectives (skill up, tie-rate down, slot-spread down) and
+the balanced default is the ladder minimising its worst per-objective rank (minimax, no
+arbitrary cut-offs). N is reported as second-order — its within-ladder skill differences
+are below the between-draw cluster SE, so it is not ranked.
 """
 
 from __future__ import annotations
@@ -35,9 +38,13 @@ N_DRAFTERS = 6  # fixed by the task (6-person pool); the equitable per-slot win 
 
 
 def latest(glob: str) -> Path:
-    files = sorted(TABLES.glob(glob))
+    # Ignore "_quick" smoke-run files so plots always reflect the full 50k deliverable.
+    files = sorted(f for f in TABLES.glob(glob) if "_quick" not in f.name)
     if not files:
-        raise FileNotFoundError(f"no file matching {glob} in {TABLES}")
+        raise FileNotFoundError(
+            f"no full-run file matching {glob} in {TABLES} "
+            f"(run scripts/run_experiment.py without --quick first)"
+        )
     return files[-1]
 
 
@@ -205,17 +212,33 @@ def write_recommendation(df, exp_df, today):
     r_slot = lad.slot.rank(ascending=True)
     worst = pd.concat([r_skill, r_tie, r_slot], axis=1).max(axis=1)
     total = r_skill + r_tie + r_slot
-    balanced_ladder = pd.DataFrame({"w": worst, "t": total}).sort_values(["w", "t"]).index[0]
+    # minimax over per-objective ranks; ties broken by total rank, then higher skill.
+    order = pd.DataFrame({"w": worst, "t": total, "neg_skill": -lad.skill})
+    balanced_ladder = order.sort_values(["w", "t", "neg_skill"]).index[0]
     skill_ladder = lad.skill.idxmax()
     fair_ladder = lad.slot.idxmin()
 
-    # Significance framing from the between-draw cluster SE (the draw is the unit).
+    # Significance framing from the between-draw cluster SE (the draw is the unit). Under
+    # the fixed-draw regime there is a single draw, so the cluster SE is undefined (NaN).
     typ_se = float(anchor[SE_COL].median())
     bl = anchor[anchor.ladder == balanced_ladder]
     n_range = float(bl[SKILL_COL].max() - bl[SKILL_COL].min())
     cross_gap = float(lad.skill.max() - lad.skill.min())
-    n_range_se = n_range / typ_se
-    cross_gap_se = cross_gap / typ_se
+    se_known = np.isfinite(typ_se) and typ_se > 0
+    if se_known:
+        sig_text = (
+            f"Within the {balanced_ladder} ladder, skill ranges only {n_range:.3f} across "
+            f"N in {{4,5,6,8}} = {n_range / typ_se:.1f}x the per-cell between-draw cluster "
+            f"SE ({typ_se:.4f}); the geometric-vs-linear skill gap is {cross_gap:.3f} = "
+            f"{cross_gap / typ_se:.0f}x that SE."
+        )
+    else:
+        sig_text = (
+            f"Within the {balanced_ladder} ladder, skill ranges only {n_range:.3f} across "
+            f"N in {{4,5,6,8}} vs a cross-ladder gap of {cross_gap:.3f}. (Between-draw "
+            "cluster SE is undefined under the single-draw fixed regime; run the resampled "
+            "regime for the significance multiples.)"
+        )
 
     def lad_str(name):
         r = lad.loc[name]
@@ -242,17 +265,13 @@ def write_recommendation(df, exp_df, today):
         f"* **Most slot-equitable:** the {lad_str(fair_ladder)}. Fairest across snake "
         "slots, but lowest skill and a high tie rate (needs an explicit tiebreaker rule).",
         "",
-        "**N is second-order and statistically indistinguishable.** Within the "
-        f"{balanced_ladder} ladder, skill ranges only {n_range:.3f} across N in {{4,5,6,8}} "
-        f"= {n_range_se:.1f}x the per-cell between-draw cluster SE ({typ_se:.4f}); the "
-        f"geometric-vs-linear skill gap is {cross_gap:.3f} = {cross_gap_se:.0f}x that SE. "
+        "**N is second-order and statistically indistinguishable.** " + sig_text + " "
         "Choose the ladder first; set N on practical grounds (N=8 drafts the full 48-team "
         "field with no stars left undrafted; smaller N leaves more teams unowned).",
         "",
-        "Note: the between-draw cluster SE (~"
-        f"{typ_se:.4f}) is the correct precision here — the 50k per-cell tournaments are "
-        "clustered within 25 draws, so the independent unit is the draw, not the sim. A "
-        "naive iid SE would understate uncertainty roughly fourfold.",
+        "Note: the between-draw cluster SE is the correct precision here — the 50k per-cell "
+        "tournaments are clustered within the draws, so the independent unit is the draw, "
+        "not the sim. A naive iid SE would understate uncertainty roughly fourfold.",
         "",
         "## Per-ladder summary (anchor config, EV-greedy; mean over N, with cluster SE)",
         "",

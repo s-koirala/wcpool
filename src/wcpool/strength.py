@@ -20,8 +20,8 @@ literature-grounded:
 
 * **Goals (independent Poisson).** Group-stage results need win/draw/loss *and* goal
   difference / goals-for to break third-place ties, so we model goals, not just the
-  win/draw/loss class. Each team's goals are Poisson with a log-rate linear in the
-  rating difference — the Maher (1982) / Dixon & Coles (1997) independent-Poisson form::
+  win/draw/loss class. Each team's goals are independent Poisson with a log-rate linear in
+  the rating difference::
 
       log lambda_A = log(mu_total/2) + (beta/2) * (dr/400)
       log lambda_B = log(mu_total/2) - (beta/2) * (dr/400)
@@ -32,15 +32,25 @@ literature-grounded:
   implied expected score ``P(win)+0.5*P(draw)`` reproduces the Elo logistic ``W_e(dr)``
   over the realised distribution of rating gaps. No supremacy constant is hand-set.
 
-  Maher 1982, "Modelling association football scores", Statistica Neerlandica 36:109.
-  Dixon & Coles 1997, "Modelling Association Football Scores and Inefficiencies in the
-  Football Betting Market", JRSS-C 46:265 (https://doi.org/10.1111/1467-9876.00065).
+  The *independent*-Poisson goals model is Maher (1982). Dixon & Coles (1997) is the
+  canonical reference for the supremacy/attack-defence Poisson framework and additionally
+  introduced a low-score *dependence* correction (a tau adjustment for 0-0/1-0/0-1/1-1)
+  that we deliberately do NOT implement — this code uses pure independent Poisson.
+
+  Maher, M.J. (1982), "Modelling association football scores", Statistica Neerlandica
+  36(3):109-118. https://doi.org/10.1111/j.1467-9574.1982.tb00782.x
+  Dixon, M.J. & Coles, S.G. (1997), "Modelling Association Football Scores and
+  Inefficiencies in the Football Betting Market", J. R. Statist. Soc. C 46(2):265-280.
+  https://doi.org/10.1111/1467-9876.00065
 
 The win/draw/loss probabilities of two independent Poissons are read off the **Skellam**
-distribution of the goal difference ``D = g_A - g_B`` (Skellam 1946): ``P(draw)=P(D=0)``,
+distribution of the goal difference ``D = g_A - g_B``: ``P(draw)=P(D=0)``,
 ``P(A win)=P(D>0)``, ``P(B win)=P(D<0)``. Knockout matches admit no draw, so a tie is
 resolved (extra-time / shootout proxy) in proportion to win strength:
 ``P(A advances) = P(A win) + P(draw) * P(A win)/(P(A win)+P(B win))``.
+
+  Skellam, J.G. (1946), "The frequency distribution of the difference between two Poisson
+  variates belonging to different populations", J. R. Statist. Soc. A 109(3):296.
 """
 
 from __future__ import annotations
@@ -113,21 +123,21 @@ def knockout_advance_prob(lam_a: np.ndarray, lam_b: np.ndarray) -> np.ndarray:
 def calibrate_beta(
     ratings: np.ndarray,
     mu_total: float,
-    home_advantage: float = 0.0,
     beta_bounds: tuple[float, float] = (0.1, 6.0),
 ) -> dict:
-    """Fit the supremacy slope ``beta`` so the goals model matches the Elo expected score.
+    """Fit the *neutral* supremacy slope ``beta`` so the goals model matches the Elo curve.
 
-    Target ``W_e(dr)`` is evaluated on every realised pairwise rating gap (so the fit is
-    weighted by the matchups that actually occur for this field). Returns the fitted beta
-    plus diagnostics: RMSE/max-abs deviation from the Elo curve and the implied even-match
-    draw rate (a quantity to sanity-check against historical World-Cup draw frequencies).
+    Target ``W_e(dr)`` is evaluated on every realised neutral pairwise rating gap (so the
+    fit is weighted by the matchups that actually occur for this field). ``beta`` is the
+    neutral supremacy slope; home advantage, if enabled, simply shifts the effective gap
+    ``dr`` at simulation time (the standard Elo treatment) and is deliberately excluded
+    here so it does not get folded into the slope. Returns the fitted beta plus
+    diagnostics: RMSE/max-abs deviation from the Elo curve and the implied even-match draw
+    rate (sanity-checked against historical World-Cup draw frequencies).
     """
     ratings = np.asarray(ratings, dtype=float)
     diffs = ratings[:, None] - ratings[None, :]
     dr = diffs[~np.eye(len(ratings), dtype=bool)]  # all ordered i!=j gaps
-    if home_advantage:
-        dr = np.concatenate([dr + home_advantage, dr - home_advantage])
     target = elo_expected_score(dr)
 
     def loss(beta: float) -> float:
@@ -169,7 +179,7 @@ class StrengthModel:
     def __post_init__(self) -> None:
         self.ratings = np.asarray(self.ratings, dtype=float)
         if self.beta is None:
-            self.calibration = calibrate_beta(self.ratings, self.mu_total, self.home_advantage)
+            self.calibration = calibrate_beta(self.ratings, self.mu_total)
             self.beta = self.calibration["beta"]
 
     @property

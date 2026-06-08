@@ -6,7 +6,7 @@ A simulation environment to evaluate **scoring ladders** and **draft designs** f
 ## What it does
 
 1. Simulates the **official 2026 tournament** (48 teams, 12 groups, top-2 + 8 best thirds, single-elim R32→Final) from a pluggable team-strength rating.
-2. Runs a **6-person snake draft** under three policies (EV-greedy, greedy best-response, variance-seeking).
+2. Runs a **6-person snake draft**. EV-greedy and variance-seeking are swept over the full grid; a one-ply greedy best-response is run on a matched subset as an exploitability probe.
 3. Scores each drafter under three **terminal-points ladders** (linear, triangular, geometric).
 4. Reports five metric families over the `(N, ladder, strength-model)` grid: skill-vs-luck, slot equity, tie rate, champion dominance, robustness.
 

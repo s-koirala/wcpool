@@ -20,6 +20,23 @@ def test_win_probability_sums_to_one_and_handles_ties():
     assert wp[1] == pytest.approx(0.75)
 
 
+def test_win_probability_three_way_tie_six_drafters():
+    # 6 drafters; one clear win, one 3-way tie at the top -> still sums to 1, tie split equally
+    scores = np.array(
+        [
+            [9.0, 1.0, 1.0, 1.0, 1.0, 1.0],  # drafter 0 wins outright
+            [5.0, 5.0, 5.0, 1.0, 1.0, 1.0],  # 3-way tie among 0,1,2
+        ]
+    )
+    wp = metrics.win_probability(scores)
+    assert wp.sum() == pytest.approx(1.0)
+    # drafter 0: (1 + 1/3)/2 = 0.6667; drafters 1,2: (1/3)/2 = 0.1667; drafters 3-5: 0
+    assert wp[0] == pytest.approx((1 + 1 / 3) / 2)
+    assert wp[1] == pytest.approx((1 / 3) / 2)
+    assert wp[2] == pytest.approx((1 / 3) / 2)
+    assert wp[3:].sum() == pytest.approx(0.0)
+
+
 def test_top_tie_rate():
     scores = np.array([[1.0, 2.0], [3.0, 3.0], [5.0, 1.0]])
     assert metrics.top_tie_rate(scores) == pytest.approx(1 / 3)

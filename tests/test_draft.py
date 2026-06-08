@@ -56,5 +56,7 @@ def test_best_response_not_worse_than_ev_greedy():
     br = draft.draft_best_response(points, team_ev, br_slot, 6, n_rounds)
     br_wp = metrics.win_probability(metrics.pool_scores(points, br["rosters"]))[br_slot]
 
-    # best response can only help (same scoring data, monotone improvement guarantee)
+    # In-sample guarantee: when the decision batch (points) IS the scoring batch and the
+    # BR drafter picks first, its choice set is a superset of the greedy pick, so it weakly
+    # dominates. (Out-of-sample, scored on an independent batch, this need NOT hold.)
     assert br_wp >= greedy_wp - 1e-9

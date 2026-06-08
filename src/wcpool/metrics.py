@@ -29,7 +29,7 @@ def pool_scores(points: np.ndarray, rosters: np.ndarray) -> np.ndarray:
 def win_probability(scores: np.ndarray) -> np.ndarray:
     """Win probability per drafter, splitting a tie at the top equally among those tied."""
     top = scores.max(axis=1, keepdims=True)
-    is_top = scores == top
+    is_top = (scores == top).astype(float)
     credit = is_top / is_top.sum(axis=1, keepdims=True)
     return credit.mean(axis=0)
 
@@ -124,8 +124,10 @@ def slot_win_probability(scores: np.ndarray) -> np.ndarray:
 def slot_equity_imbalance(scores: np.ndarray) -> dict:
     """How far slot win-probabilities depart from the equitable 1/n_drafters.
 
-    ``max_minus_min`` is the spread; ``chi2_uniform`` is the chi-square statistic against a
-    uniform allocation (0 = perfectly balanced). Both are 0 iff every slot wins equally.
+    ``max_minus_min`` is the spread. ``imbalance_index`` is a scaled sum of squared
+    departures from uniform, ``sum((wp - 1/n)**2 / (1/n))`` — a chi-square-*like*
+    discrepancy on probabilities (NOT a chi-square test statistic: it is not multiplied by
+    a sample size and has no associated p-value). Both are 0 iff every slot wins equally.
     """
     wp = win_probability(scores)
     n = len(wp)
@@ -133,7 +135,7 @@ def slot_equity_imbalance(scores: np.ndarray) -> dict:
     return {
         "win_prob_by_slot": wp.tolist(),
         "max_minus_min": float(wp.max() - wp.min()),
-        "chi2_uniform": float(np.sum((wp - uniform) ** 2 / uniform)),
+        "imbalance_index": float(np.sum((wp - uniform) ** 2 / uniform)),
     }
 
 

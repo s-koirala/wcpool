@@ -47,6 +47,7 @@ def test_run_strength_config_small():
 
 def test_synthetic_config_concentration_monotone():
     # higher rating spread -> more title probability concentrated in the top 8
+    # same seed + rating_stream -> same underlying z draw, so this isolates the spread effect
     low = simulate.make_synthetic_config(spread=60.0, name="lo", seed=1)
     high = simulate.make_synthetic_config(spread=240.0, name="hi", seed=1)
     rng_l = np.random.default_rng(0)

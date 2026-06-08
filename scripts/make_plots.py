@@ -31,6 +31,7 @@ FIGURES = ROOT / "docs" / "figures"
 LADDER_ORDER = ["linear", "triangular", "geometric"]
 SKILL_COL = "spearman_mean"  # headline "skill correlation" axis
 ANCHOR_CONFIG = "elo_2026"
+N_DRAFTERS = 6  # fixed by the task (6-person pool); the equitable per-slot win prob is 1/6
 
 
 def latest(glob: str) -> Path:
@@ -149,18 +150,18 @@ def fig_robustness(df, today):
 
 def fig_slot_equity(df, today):
     sub = df[(df.strength_config == ANCHOR_CONFIG) & (df.policy == "ev_greedy")]
-    slot_cols = [f"slot{i + 1}_win_prob" for i in range(6)]
+    slot_cols = [f"slot{i + 1}_win_prob" for i in range(N_DRAFTERS)]
     fig, axes = plt.subplots(1, len(LADDER_ORDER), figsize=(13, 4), sharey=True)
     for ax, ladder in zip(axes, LADDER_ORDER, strict=True):
         s = sub[sub.ladder == ladder]
         for _, row in s.iterrows():
             ax.plot(
-                range(1, 7),
+                range(1, N_DRAFTERS + 1),
                 [row[c] for c in slot_cols],
                 marker="o",
                 label=f"N={int(row.teams_per_drafter)}",
             )
-        ax.axhline(1 / 6, ls="--", color="grey", lw=1, label="equitable 1/6")
+        ax.axhline(1 / N_DRAFTERS, ls="--", color="grey", lw=1, label=f"equitable 1/{N_DRAFTERS}")
         ax.set_title(f"{ladder}")
         ax.set_xlabel("snake slot")
     axes[0].set_ylabel("win probability")
@@ -173,106 +174,89 @@ def fig_slot_equity(df, today):
     return out
 
 
-def pareto_frontier(sub):
-    """Non-dominated cells in (skill up, tie down, slot-imbalance down). Returns mask."""
-    pts = sub[[SKILL_COL, "top_tie_rate", "slot_win_prob_spread"]].to_numpy()
-    n = len(pts)
-    dominated = np.zeros(n, dtype=bool)
-    for i in range(n):
-        for j in range(n):
-            if i == j:
-                continue
-            better_eq = pts[j, 0] >= pts[i, 0] and pts[j, 1] <= pts[i, 1] and pts[j, 2] <= pts[i, 2]
-            strictly = pts[j, 0] > pts[i, 0] or pts[j, 1] < pts[i, 1] or pts[j, 2] < pts[i, 2]
-            if better_eq and strictly:
-                dominated[i] = True
-                break
-    return ~dominated
+SE_COL = "spearman_cluster_se"  # between-draw cluster SE of the skill correlation
 
 
-def _objective_ranks(cells):
-    """Per-objective ranks over the cells: skill (desc), tie (asc), slot spread (asc)."""
-    r_skill = cells[SKILL_COL].rank(ascending=False)
-    r_tie = cells["top_tie_rate"].rank(ascending=True)
-    r_slot = cells["slot_win_prob_spread"].rank(ascending=True)
-    return r_skill, r_tie, r_slot
+def _ladder_aggregates(anchor):
+    """Per-ladder means over N + a representative between-draw cluster SE."""
+    lad = (
+        anchor.groupby("ladder")
+        .agg(
+            skill=(SKILL_COL, "mean"),
+            tie=("top_tie_rate", "mean"),
+            slot=("slot_win_prob_spread", "mean"),
+            champ_dom=("p_champion_holder_wins", "mean"),
+            cluster_se=(SE_COL, "mean"),
+        )
+        .reindex(LADDER_ORDER)
+    )
+    return lad
 
 
 def write_recommendation(df, exp_df, today):
     anchor = df[(df.strength_config == ANCHOR_CONFIG) & (df.policy == "ev_greedy")].copy()
     anchor = anchor.reset_index(drop=True)
-    anchor["mc_se"] = anchor["spearman_sd"] / np.sqrt(anchor["n_eval_tournaments"])
+    lad = _ladder_aggregates(anchor)
 
-    # Three single-objective optima and one balanced compromise.
-    skill_max = anchor.loc[anchor[SKILL_COL].idxmax()]
-    slot_fair = anchor.loc[anchor["slot_win_prob_spread"].idxmin()]
-    r_skill, r_tie, r_slot = _objective_ranks(anchor)
-    worst_rank = pd.concat([r_skill, r_tie, r_slot], axis=1).max(axis=1)
-    sum_rank = r_skill + r_tie + r_slot
-    # balanced = minimise the worst per-objective rank (Rawlsian), break ties by total rank.
-    order = pd.DataFrame({"worst": worst_rank, "sum": sum_rank}).sort_values(["worst", "sum"])
-    balanced = anchor.loc[order.index[0]]
-    rec_n, rec_ladder = int(balanced.teams_per_drafter), balanced.ladder
+    # Recommend at the LADDER level (the discriminating axis). N is not separated under the
+    # cluster SE, so it is not ranked. Balanced ladder = minimax over the 3 objective ranks.
+    r_skill = lad.skill.rank(ascending=False)
+    r_tie = lad.tie.rank(ascending=True)
+    r_slot = lad.slot.rank(ascending=True)
+    worst = pd.concat([r_skill, r_tie, r_slot], axis=1).max(axis=1)
+    total = r_skill + r_tie + r_slot
+    balanced_ladder = pd.DataFrame({"w": worst, "t": total}).sort_values(["w", "t"]).index[0]
+    skill_ladder = lad.skill.idxmax()
+    fair_ladder = lad.slot.idxmin()
 
-    front_mask = pareto_frontier(anchor)
-    front = anchor[front_mask].sort_values(SKILL_COL, ascending=False)
+    # Significance framing from the between-draw cluster SE (the draw is the unit).
+    typ_se = float(anchor[SE_COL].median())
+    bl = anchor[anchor.ladder == balanced_ladder]
+    n_range = float(bl[SKILL_COL].max() - bl[SKILL_COL].min())
+    cross_gap = float(lad.skill.max() - lad.skill.min())
+    n_range_se = n_range / typ_se
+    cross_gap_se = cross_gap / typ_se
 
-    # N-effect within the balanced ladder, with MC standard error.
-    n_effect = anchor[anchor.ladder == rec_ladder].sort_values("teams_per_drafter")[
-        ["teams_per_drafter", SKILL_COL, "mc_se", "top_tie_rate", "slot_win_prob_spread"]
-    ]
-
-    rob_rows = []
-    for cfg in sorted(df.strength_config.unique()):
-        s = df[(df.strength_config == cfg) & (df.policy == "ev_greedy")].copy()
-        s["skill_rank"] = s[SKILL_COL].rank(ascending=False)
-        cell = s[(s.teams_per_drafter == rec_n) & (s.ladder == rec_ladder)].iloc[0]
-        rob_rows.append(
-            {
-                "strength_config": cfg,
-                "top8_title_share": round(cell.top8_title_share, 3),
-                "skill": round(cell[SKILL_COL], 3),
-                "skill_rank_of_balanced": int(cell.skill_rank),
-                "tie_rate": round(cell.top_tie_rate, 4),
-                "slot_spread": round(cell.slot_win_prob_spread, 4),
-            }
-        )
-    rob = pd.DataFrame(rob_rows)
-
-    def cell_str(c):
+    def lad_str(name):
+        r = lad.loc[name]
         return (
-            f"N={int(c.teams_per_drafter)} {c.ladder} "
-            f"(skill={c[SKILL_COL]:.3f}, tie={c.top_tie_rate:.4f}, "
-            f"slot-spread={c.slot_win_prob_spread:.3f}, "
-            f"champ-dom={c.p_champion_holder_wins:.3f})"
+            f"{name} ladder — skill={r.skill:.3f}, tie={r.tie:.4f}, "
+            f"slot-spread={r.slot:.3f}, champ-dom={r.champ_dom:.3f}"
         )
 
     lines = [
-        f"# Recommended (N, ladder) — {today}",
+        f"# Recommended ladder (and N) — {today}",
         "",
         "## Headline",
         "",
         "The three design goals **conflict along one axis — ladder convexity**. The same "
         "convexity that raises skill correlation and removes ties also concentrates pool "
         "wins in the first snake pick (it turns the pool into a referendum on who drafts "
-        "the eventual champion). No single cell wins all three goals.",
+        "the eventual champion). No ladder wins all three goals; the choice is a tradeoff.",
         "",
-        f"* **Balanced default (recommended): {cell_str(balanced)}** — best joint standing "
-        "across all three objectives (minimax over per-objective ranks).",
-        f"* **Pure skill / no-ties: {cell_str(skill_max)}** — maximises skill and "
+        f"* **Balanced default (recommended):** the {lad_str(balanced_ladder)}. Best joint "
+        "standing across all three objectives (minimax over per-objective ranks).",
+        f"* **Pure skill / no-ties:** the {lad_str(skill_ladder)}. Maximises skill and "
         "essentially eliminates ties, but is the *least* slot-equitable and makes the pool "
         "almost entirely about owning the champion.",
-        f"* **Most slot-equitable: {cell_str(slot_fair)}** — fairest across snake slots, but "
-        "lowest skill and a high tie rate (needs an explicit tiebreaker rule).",
+        f"* **Most slot-equitable:** the {lad_str(fair_ladder)}. Fairest across snake "
+        "slots, but lowest skill and a high tie rate (needs an explicit tiebreaker rule).",
         "",
-        "**N is second-order.** Within a ladder, skill varies by <~0.01 across "
-        "N in {4,5,6,8} (≈ 3 Monte-Carlo SE), while the cross-ladder gaps are 15–25 SE. "
-        "Choose the ladder first; pick N on other grounds (e.g. N=8 drafts the full field).",
+        "**N is second-order and statistically indistinguishable.** Within the "
+        f"{balanced_ladder} ladder, skill ranges only {n_range:.3f} across N in {{4,5,6,8}} "
+        f"= {n_range_se:.1f}x the per-cell between-draw cluster SE ({typ_se:.4f}); the "
+        f"geometric-vs-linear skill gap is {cross_gap:.3f} = {cross_gap_se:.0f}x that SE. "
+        "Choose the ladder first; set N on practical grounds (N=8 drafts the full 48-team "
+        "field with no stars left undrafted; smaller N leaves more teams unowned).",
         "",
-        "## N-effect within the recommended ladder "
-        f"(`{rec_ladder}`, anchor, EV-greedy; mc_se = SE of skill mean)",
+        "Note: the between-draw cluster SE (~"
+        f"{typ_se:.4f}) is the correct precision here — the 50k per-cell tournaments are "
+        "clustered within 25 draws, so the independent unit is the draw, not the sim. A "
+        "naive iid SE would understate uncertainty roughly fourfold.",
         "",
-        n_effect.round(4).to_markdown(index=False),
+        "## Per-ladder summary (anchor config, EV-greedy; mean over N, with cluster SE)",
+        "",
+        lad.round(4).to_markdown(),
         "",
         "## Full (N, ladder) grid — anchor config, EV-greedy",
         "",
@@ -281,6 +265,7 @@ def write_recommendation(df, exp_df, today):
                 "teams_per_drafter",
                 "ladder",
                 SKILL_COL,
+                SE_COL,
                 "skill_variance_share",
                 "top_tie_rate",
                 "slot_win_prob_spread",
@@ -290,21 +275,33 @@ def write_recommendation(df, exp_df, today):
         .round(4)
         .to_markdown(index=False),
         "",
-        "Pareto-frontier cells (non-dominated in skill↑ / tie↓ / slot-spread↓): "
-        + ", ".join(f"{int(r.teams_per_drafter)} {r.ladder}" for _, r in front.iterrows())
-        + ".",
+        "## Robustness across strength models (recommended ladder, mean over N)",
         "",
-        "## Robustness of the recommendation across strength models",
-        "",
-        "`skill_rank_of_balanced` is the recommended cell's skill rank (1 = best) within "
-        "each config's 12-cell (N x ladder) grid. The slot-spread column shows the "
-        "slot-equity cost is driven by field concentration (large when top-8 share is high).",
-        "",
-        rob.to_markdown(index=False),
+        "`skill_rank` is the recommended ladder's rank among the 3 ladders within each "
+        "config (1 = best skill). The slot-spread column shows the slot-equity cost is "
+        "driven by field concentration (large only when the top-8 title share is high).",
         "",
     ]
+
+    rob_rows = []
+    for cfg in sorted(df.strength_config.unique()):
+        s = df[(df.strength_config == cfg) & (df.policy == "ev_greedy")]
+        lad_c = _ladder_aggregates(s.reset_index(drop=True))
+        rank = lad_c.skill.rank(ascending=False)[balanced_ladder]
+        row = lad_c.loc[balanced_ladder]
+        rob_rows.append(
+            {
+                "strength_config": cfg,
+                "top8_title_share": round(s.top8_title_share.iloc[0], 3),
+                "skill": round(row.skill, 3),
+                "skill_rank_of_recommended": int(rank),
+                "tie_rate": round(row.tie, 4),
+                "slot_spread": round(row.slot, 4),
+            }
+        )
+    lines += [pd.DataFrame(rob_rows).to_markdown(index=False), ""]
+
     if exp_df is not None:
-        lines += ["## Exploitability (best-response vs EV-greedy at slot 1)", ""]
         e = exp_df.copy()
         piv = e.pivot_table(
             index=["strength_config", "ladder", "teams_per_drafter"],
@@ -312,18 +309,29 @@ def write_recommendation(df, exp_df, today):
             values="slot1_win_prob",
         )
         piv["br_minus_evgreedy"] = piv.get("best_response", np.nan) - piv.get("ev_greedy", np.nan)
+        # noise scale: between-draw cluster SE of slot win-prob spread on the probe cells
+        noise = float(e["slot_win_prob_spread_cluster_se"].median())
+        probe_draws = int(e["n_draws"].iloc[0])
         lines += [
+            "## Exploitability (out-of-sample best-response vs EV-greedy at slot 1)",
+            "",
+            "The best-responder now decides on the EV (model) batch and is scored on an "
+            "independent eval batch, so any positive margin is genuine exploitability, not "
+            "in-sample optimism. The probe runs at a reduced budget "
+            f"({probe_draws} draws); the between-draw noise scale on slot win-prob is "
+            f"~{noise:.4f}, so margins within ~that size are not distinguishable from zero.",
+            "",
             piv.round(4).to_markdown(),
             "",
-            "A positive `br_minus_evgreedy` means a best-responding drafter in slot 1 "
-            "beats the EV-greedy baseline there — i.e. EV-greedy is exploitable by that "
-            "margin.",
+            "`br_minus_evgreedy` > 0 means the slot-1 best-responder beats EV-greedy there; "
+            "margins of the order of the noise scale above indicate EV-greedy is, at most, "
+            "marginally exploitable.",
             "",
         ]
 
     out = TABLES / f"recommendation_{today}.md"
     out.write_text("\n".join(lines), encoding="utf-8")
-    return out, rec_n, rec_ladder
+    return out, balanced_ladder
 
 
 def write_summary(df, today):
@@ -362,11 +370,11 @@ def main():
         fig_slot_equity(df, today),
         write_summary(df, today),
     ]
-    rec_out, rec_n, rec_ladder = write_recommendation(df, exp_df, today)
+    rec_out, rec_ladder = write_recommendation(df, exp_df, today)
     outs.append(rec_out)
     for o in outs:
         print(f"wrote {o.relative_to(ROOT)}")
-    print(f"\nRecommended: N={rec_n}, ladder={rec_ladder}")
+    print(f"\nRecommended ladder: {rec_ladder} (N is statistically indistinguishable)")
 
 
 if __name__ == "__main__":

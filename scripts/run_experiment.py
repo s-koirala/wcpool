@@ -36,7 +36,13 @@ MAIN_POLICIES = ["ev_greedy", "variance"]
 # Synthetic favoritism sweep: spread as a multiple of the empirical Elo SD (half / equal /
 # double the real field's dispersion) — a documented stress range, not a tuned value.
 SYNTH_SPREAD_MULTIPLIERS = [0.5, 1.0, 2.0]
-DEFAULT_SEED = 20260608  # today's date as the master seed (documented, not arbitrary)
+DEFAULT_SEED = 20260608  # fixed master seed = the 2026-06-08 run date (YYYYMMDD)
+
+# Best-response (exploitability) probe runs at a reduced budget because each pick is
+# O(n_teams) more expensive than EV-greedy; the resulting between-draw SE is reported so
+# the small exploitability margins remain interpretable. (full / --quick)
+BR_DRAWS_FULL, BR_SIMS_FULL = 8, 1500
+BR_DRAWS_QUICK, BR_SIMS_QUICK = 3, 250
 
 CONFIG_PATH = ROOT / "config" / "ratings_elo_2026.yaml"
 
@@ -76,7 +82,11 @@ def build_configs(field, seed: int):
     for i, mult in enumerate(SYNTH_SPREAD_MULTIPLIERS, start=1):
         spread = mult * spread0
         name = f"synthetic_x{mult:g}"
-        configs.append((i, simulate.make_synthetic_config(spread, name=name, seed=seed)))
+        # rating_stream fixed (default 0): all synthetic configs share one z-draw and differ
+        # only by spread -> a controlled, monotone concentration sweep. cfg_id (i) still
+        # gives each config independent tournament-sim streams.
+        cfg = simulate.make_synthetic_config(spread, name=name, seed=seed)
+        configs.append((i, cfg))
     return configs
 
 
@@ -138,10 +148,10 @@ def main():
 
     if args.quick:
         n_draws, sims_per_draw = (args.draws or 4), (args.sims or 250)
-        br_draws, br_sims = 3, 250
+        br_draws, br_sims = BR_DRAWS_QUICK, BR_SIMS_QUICK
     else:
         n_draws, sims_per_draw = (args.draws or 25), (args.sims or 2000)
-        br_draws, br_sims = 8, 1500
+        br_draws, br_sims = BR_DRAWS_FULL, BR_SIMS_FULL
 
     field = load_field(CONFIG_PATH)
     grid_meta = {

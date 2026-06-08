@@ -1,10 +1,10 @@
-ReproLog: logs\reproducibility\repro_log_3346521e581440aaa29fb7c6871e2788.json
+ReproLog: logs\reproducibility\repro_log_52c394ecfb8545d2b398c36b8fa88ac8.json
 Grid: 25 draws x 2000 sims = 50000 eval tournaments/cell, regime=resampled
 Main grid:
   [elo_2026] top-8 title share=0.913, beta=1.776
-  [synthetic_x0.5] top-8 title share=0.648, beta=1.834
-  [synthetic_x1] top-8 title share=0.837, beta=1.776
-  [synthetic_x2] top-8 title share=0.977, beta=1.737
+  [synthetic_x0.5] top-8 title share=0.709, beta=1.825
+  [synthetic_x1] top-8 title share=0.931, beta=1.777
+  [synthetic_x2] top-8 title share=0.998, beta=1.731
   wrote docs\tables\results_main_2026-06-08.csv (96 rows)
 Exploitability probe:
   [probe:elo_2026] done

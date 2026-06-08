@@ -30,7 +30,9 @@ def test_poisson_rates_product_invariant():
     mu, beta = 2.6, 1.5
     la0, lb0 = strength.poisson_rates(0.0, mu, beta)
     la1, lb1 = strength.poisson_rates(300.0, mu, beta)
-    assert la0 * lb0 == pytest.approx(la1 * lb1)
+    # product is pinned to (mu/2)^2 at every gap; geometric mean is mu/2 regardless of dr
+    assert la0 * lb0 == pytest.approx((mu / 2) ** 2)
+    assert la1 * lb1 == pytest.approx((mu / 2) ** 2)
     assert la1 > la0 and lb1 < lb0  # favourite scores more, concedes... rate drops
 
 

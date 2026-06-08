@@ -46,13 +46,11 @@ def _greedy_picks(
 ) -> list[int]:
     """Fill picks from index ``start`` onward by taking argmax ``key`` among available."""
     picks = list(picks)
-    avail = available.copy()
-    candidates = np.where(avail)[0]
+    candidates = np.where(available)[0]
     for _ in range(start, len(seq)):
         # argmax key over currently available teams
         best = candidates[np.argmax(key[candidates])]
         picks.append(int(best))
-        avail[best] = False
         candidates = candidates[candidates != best]
     return picks
 
@@ -100,6 +98,11 @@ def draft_best_response(
     complete the entire remaining draft EV-greedily (all drafters), score the pool over
     ``points`` and keep the team that maximises the best-responder's win probability.
     Opponents' own picks use EV-greedy throughout.
+
+    ``points`` must be the best-responder's *belief* about outcomes (the model/EV-batch
+    sample), NOT the held-out tournaments it is later scored on — otherwise the policy
+    optimises in-sample and the measured exploitability is spurious. The caller scores the
+    returned roster on an independent eval batch.
     """
     n_teams = len(team_ev)
     seq = snake_sequence(n_drafters, n_rounds)

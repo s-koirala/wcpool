@@ -31,6 +31,10 @@ from .tournament import N_TEAMS, random_pot_draw, simulate_tournament
 
 N_DRAFTERS = draft_mod.N_DRAFTERS
 
+# Fixed namespace tag for synthetic-config RNG streams, keeping them disjoint from the
+# main grid's spawn_key=(cfg_id, draw, batch) scheme. Arbitrary but documented.
+SYNTH_SEED_NAMESPACE = 7
+
 
 def champion_team(stages: np.ndarray) -> np.ndarray:
     """Global index of the champion (stage == CHAMPION) in each replicate: (n_sims,)."""
@@ -76,8 +80,16 @@ def make_elo_config(field, name: str = "elo_2026") -> StrengthConfig:
     )
 
 
-def make_synthetic_config(spread: float, name: str, seed: int) -> StrengthConfig:
-    rng = np.random.default_rng(np.random.SeedSequence(seed, spawn_key=(7, int(spread))))
+def make_synthetic_config(
+    spread: float, name: str, seed: int, rating_stream: int = 0
+) -> StrengthConfig:
+    # The favoritism sweep is a CONTROLLED concentration ladder: every synthetic config
+    # shares one standard-normal draw (fixed rating_stream) and differs only by `spread`,
+    # so the induced top-k concentration is monotone in spread by construction and the
+    # sweep isolates the concentration effect. (rating_stream lets callers vary the field.)
+    rng = np.random.default_rng(
+        np.random.SeedSequence(seed, spawn_key=(SYNTH_SEED_NAMESPACE, rating_stream))
+    )
     ratings = synthetic_ratings(N_TEAMS, spread=spread, rng=rng)
     model = StrengthModel(ratings)
     pots = rank_pots(ratings)
@@ -93,7 +105,7 @@ def make_synthetic_config(spread: float, name: str, seed: int) -> StrengthConfig
 
 def _draw_groups(cfg: StrengthConfig, regime: str, rng: np.random.Generator) -> np.ndarray:
     if regime == "fixed":
-        return cfg.fixed_groups
+        return cfg.fixed_groups.copy()  # copy so callers cannot mutate the shared config
     if regime == "resampled":
         return random_pot_draw(cfg.pots, rng)
     raise ValueError(f"unknown regime {regime!r}")
@@ -103,20 +115,28 @@ def _draw_groups(cfg: StrengthConfig, regime: str, rng: np.random.Generator) -> 
 class CellAccumulator:
     scores: list = dc_field(default_factory=list)
     rho: list = dc_field(default_factory=list)
-    skill_share: list = dc_field(default_factory=list)
     sigma_between: list = dc_field(default_factory=list)
     sigma_within: list = dc_field(default_factory=list)
     champ_credit: list = dc_field(default_factory=list)
     champ_drafted: list = dc_field(default_factory=list)
+    # Per-draw metric values: the draw is the independent replication unit, so cluster
+    # (between-draw) standard errors are computed from these, NOT from the 50k pooled sims.
+    draw_spearman: list = dc_field(default_factory=list)
+    draw_tie: list = dc_field(default_factory=list)
+    draw_slot_spread: list = dc_field(default_factory=list)
 
 
-def _run_draft(policy: str, n_rounds: int, team_ev, team_var, points_eval, br_slot: int):
+def _run_draft(policy, n_rounds, team_ev, team_var, points_decision, br_slot):
+    """Build rosters. Best-response decides on ``points_decision`` (the EV/model batch),
+    never on the held-out eval batch it is later scored against."""
     if policy == "ev_greedy":
         return draft_mod.draft_ev_greedy(team_ev, N_DRAFTERS, n_rounds)
     if policy == "variance":
         return draft_mod.draft_variance(team_var, N_DRAFTERS, n_rounds)
     if policy == "best_response":
-        return draft_mod.draft_best_response(points_eval, team_ev, br_slot, N_DRAFTERS, n_rounds)
+        return draft_mod.draft_best_response(
+            points_decision, team_ev, br_slot, N_DRAFTERS, n_rounds
+        )
     raise ValueError(f"unknown policy {policy!r}")
 
 
@@ -175,14 +195,15 @@ def run_strength_config(
             for n in n_values:
                 for policy in policies:
                     key = (ladder_name, n, policy)
-                    res = _run_draft(policy, n, team_ev, team_var, points_eval, br_slot)
+                    # Decisions use the EV (model) batch; scoring uses the eval batch.
+                    res = _run_draft(policy, n, team_ev, team_var, points_ev, br_slot)
                     rosters = res["rosters"]
                     scores = M.pool_scores(points_eval, rosters)
                     a = acc.setdefault(key, CellAccumulator())
                     a.scores.append(scores)
-                    a.rho.append(M.spearman_per_sim(scores, team_ev, rosters))
+                    rho = M.spearman_per_sim(scores, team_ev, rosters)
+                    a.rho.append(rho)
                     sv = M.skill_variance_share(scores, team_ev, rosters)
-                    a.skill_share.append(sv["skill_share"])
                     a.sigma_between.append(sv["sigma2_between"])
                     a.sigma_within.append(sv["sigma2_within"])
                     credit, drafted = _accumulate_champion(
@@ -190,12 +211,25 @@ def run_strength_config(
                     )
                     a.champ_credit.append(credit)
                     a.champ_drafted.append(drafted)
+                    # per-draw values for between-draw cluster SE
+                    a.draw_spearman.append(float(np.nanmean(rho)))
+                    a.draw_tie.append(M.top_tie_rate(scores))
+                    a.draw_slot_spread.append(M.slot_equity_imbalance(scores)["max_minus_min"])
 
     cfg.top8_title_share = float(np.mean(title_shares))
-    return _finalize(acc, cfg, regime, draws * per_draw, br_slot)
+    return _finalize(acc, cfg, regime, draws * per_draw, draws, br_slot)
 
 
-def _finalize(acc, cfg, regime, n_eval, br_slot) -> list[dict]:
+def _cluster_se(per_draw_values) -> float:
+    """Between-draw (cluster) SE of a metric's per-draw values; NaN if < 2 draws."""
+    v = np.asarray(per_draw_values, dtype=float)
+    v = v[~np.isnan(v)]
+    if v.size < 2:
+        return float("nan")
+    return float(np.std(v, ddof=1) / np.sqrt(v.size))
+
+
+def _finalize(acc, cfg, regime, n_eval, n_draws, br_slot) -> list[dict]:
     records = []
     for (ladder_name, n, policy), a in acc.items():
         scores = np.vstack(a.scores)
@@ -206,6 +240,9 @@ def _finalize(acc, cfg, regime, n_eval, br_slot) -> list[dict]:
         slot_wp = M.win_probability(scores)
         imbalance = M.slot_equity_imbalance(scores)
         ws = M.winning_score_summary(scores)
+        # skill variance share as a pooled ratio-of-means (not a biased mean-of-ratios)
+        mb, mw = float(np.mean(a.sigma_between)), float(np.mean(a.sigma_within))
+        skill_share = mb / (mb + mw) if (mb + mw) > 0 else float("nan")
         records.append(
             {
                 "strength_config": cfg.name,
@@ -215,19 +252,24 @@ def _finalize(acc, cfg, regime, n_eval, br_slot) -> list[dict]:
                 "teams_per_drafter": n,
                 "policy": policy,
                 "n_eval_tournaments": int(n_eval),
+                "n_draws": int(n_draws),
                 "spearman_mean": float(np.mean(valid_rho)) if valid_rho.size else float("nan"),
                 "spearman_sd": float(np.std(valid_rho)) if valid_rho.size else float("nan"),
+                # between-draw cluster SE (the draw is the independent unit, not the sim)
+                "spearman_cluster_se": _cluster_se(a.draw_spearman),
                 "spearman_undefined_frac": float(np.mean(np.isnan(rho))),
-                "skill_variance_share": float(np.mean(a.skill_share)),
-                "sigma2_between": float(np.mean(a.sigma_between)),
-                "sigma2_within": float(np.mean(a.sigma_within)),
+                "skill_variance_share": skill_share,
+                "sigma2_between": mb,
+                "sigma2_within": mw,
                 "top_tie_rate": M.top_tie_rate(scores),
+                "top_tie_rate_cluster_se": _cluster_se(a.draw_tie),
                 "winning_score_mean": ws["mean"],
                 "winning_score_sd": ws["sd"],
                 "winning_score_p05": ws["p05"],
                 "winning_score_p95": ws["p95"],
                 "slot_win_prob_spread": imbalance["max_minus_min"],
-                "slot_chi2_uniform": imbalance["chi2_uniform"],
+                "slot_win_prob_spread_cluster_se": _cluster_se(a.draw_slot_spread),
+                "slot_imbalance_index": imbalance["imbalance_index"],
                 "champion_undrafted_rate": float(np.mean(~drafted)),
                 "p_champion_holder_wins": float(np.mean(credit[drafted]))
                 if drafted.any()
@@ -240,7 +282,12 @@ def _finalize(acc, cfg, regime, n_eval, br_slot) -> list[dict]:
 
 
 def champion_probabilities(model, pots, n_sims, rng, n_draws=1):
-    """Per-team champion probability under random draws (used by the bookmaker fit)."""
+    """Per-team champion probability under random draws (used by the bookmaker fit).
+
+    ``n_sims`` should be large enough that the per-team title probabilities are stable to
+    the precision the temperature fit needs; the headline study uses the Elo + synthetic
+    paths instead, so no fixed sizing is mandated here (the caller chooses ``n_sims``).
+    """
     shares = np.zeros(N_TEAMS)
     for _ in range(n_draws):
         groups = random_pot_draw(pots, rng)

@@ -40,7 +40,11 @@ class Field:
 
     @property
     def elo_spread(self) -> float:
-        """Standard deviation of the field's Elo ratings (anchor for the synthetic sweep)."""
+        """Population SD (ddof=0) of the field's Elo ratings; the synthetic-sweep anchor.
+
+        ddof=0 is used because the 48-team field is the whole population of interest here,
+        not a sample from a larger one; the sweep multiplies this by a documented range.
+        """
         return float(np.std(self.elo))
 
 

@@ -1,0 +1,83 @@
+# World Football Elo ratings + official draw for the 2026 FIFA World Cup field.
+#
+# Provenance:
+#   elo (source: snapshot) : eloratings.net via Wikipedia data module
+#                            "Module:SportsRankings/data/World_Football_Elo_Ratings",
+#                            updated 2026-06-01.
+#   elo (source: approx)   : NOT in the 2026-06-01 top-50 snapshot; plausible placeholder
+#                            for a lower-ranked qualifier. The design analysis relies on
+#                            the synthetic concentration sweep and on the *spread* of the
+#                            real field, both robust to +/-50 Elo on these teams.
+#   pot                    : official draw pots (FIFA, 2025-12-05 draw).
+#   group                  : official final group assignment (FIFA, 2025-12-05 draw;
+#                            Mexico->A, Canada->B, USA->D confirmed against FIFA).
+#
+# Pot membership is by FIFA world ranking with host seeding, NOT by Elo, so it does not
+# track the Elo column (e.g. Norway is Pot 3 despite a high Elo).
+
+meta:
+  source_snapshot_date: "2026-06-01"
+  elo_divisor: 400
+  notes: "Group/pot per official 2025-12-05 draw; 14 ratings are approx placeholders."
+
+teams:
+  # Group A
+  - {name: Mexico,                  group: A, pot: 1, elo: 1868, source: snapshot}
+  - {name: South Africa,            group: A, pot: 3, elo: 1730, source: approx}
+  - {name: South Korea,             group: A, pot: 2, elo: 1756, source: snapshot}
+  - {name: Czechia,                 group: A, pot: 4, elo: 1733, source: snapshot}
+  # Group B
+  - {name: Canada,                  group: B, pot: 1, elo: 1793, source: snapshot}
+  - {name: Bosnia and Herzegovina,  group: B, pot: 4, elo: 1720, source: approx}
+  - {name: Qatar,                   group: B, pot: 3, elo: 1680, source: approx}
+  - {name: Switzerland,             group: B, pot: 2, elo: 1894, source: snapshot}
+  # Group C
+  - {name: Brazil,                  group: C, pot: 1, elo: 1988, source: snapshot}
+  - {name: Morocco,                 group: C, pot: 2, elo: 1822, source: snapshot}
+  - {name: Haiti,                   group: C, pot: 4, elo: 1530, source: approx}
+  - {name: Scotland,                group: C, pot: 3, elo: 1770, source: snapshot}
+  # Group D
+  - {name: United States,           group: D, pot: 1, elo: 1733, source: snapshot}
+  - {name: Paraguay,                group: D, pot: 3, elo: 1833, source: snapshot}
+  - {name: Australia,               group: D, pot: 2, elo: 1775, source: snapshot}
+  - {name: Turkey,                  group: D, pot: 4, elo: 1906, source: snapshot}
+  # Group E
+  - {name: Germany,                 group: E, pot: 1, elo: 1925, source: snapshot}
+  - {name: Curacao,                 group: E, pot: 4, elo: 1540, source: approx}
+  - {name: Ivory Coast,             group: E, pot: 3, elo: 1750, source: approx}
+  - {name: Ecuador,                 group: E, pot: 2, elo: 1935, source: snapshot}
+  # Group F
+  - {name: Netherlands,             group: F, pot: 1, elo: 1961, source: snapshot}
+  - {name: Japan,                   group: F, pot: 2, elo: 1906, source: snapshot}
+  - {name: Sweden,                  group: F, pot: 4, elo: 1714, source: snapshot}
+  - {name: Tunisia,                 group: F, pot: 3, elo: 1687, source: approx}
+  # Group G
+  - {name: Belgium,                 group: G, pot: 1, elo: 1866, source: snapshot}
+  - {name: Egypt,                   group: G, pot: 3, elo: 1699, source: snapshot}
+  - {name: Iran,                    group: G, pot: 2, elo: 1764, source: snapshot}
+  - {name: New Zealand,             group: G, pot: 4, elo: 1600, source: approx}
+  # Group H
+  - {name: Spain,                   group: H, pot: 1, elo: 2165, source: snapshot}
+  - {name: Cape Verde,              group: H, pot: 4, elo: 1600, source: approx}
+  - {name: Saudi Arabia,            group: H, pot: 3, elo: 1660, source: approx}
+  - {name: Uruguay,                 group: H, pot: 2, elo: 1892, source: snapshot}
+  # Group I
+  - {name: France,                  group: I, pot: 1, elo: 2081, source: snapshot}
+  - {name: Senegal,                 group: I, pot: 2, elo: 1866, source: snapshot}
+  - {name: Iraq,                    group: I, pot: 4, elo: 1680, source: approx}
+  - {name: Norway,                  group: I, pot: 3, elo: 1917, source: snapshot}
+  # Group J
+  - {name: Argentina,               group: J, pot: 1, elo: 2113, source: snapshot}
+  - {name: Algeria,                 group: J, pot: 3, elo: 1743, source: snapshot}
+  - {name: Austria,                 group: J, pot: 2, elo: 1830, source: snapshot}
+  - {name: Jordan,                  group: J, pot: 4, elo: 1640, source: approx}
+  # Group K
+  - {name: Portugal,                group: K, pot: 1, elo: 1984, source: snapshot}
+  - {name: DR Congo,                group: K, pot: 4, elo: 1700, source: approx}
+  - {name: Uzbekistan,              group: K, pot: 3, elo: 1718, source: snapshot}
+  - {name: Colombia,                group: K, pot: 2, elo: 1977, source: snapshot}
+  # Group L
+  - {name: England,                 group: L, pot: 1, elo: 2020, source: snapshot}
+  - {name: Croatia,                 group: L, pot: 2, elo: 1930, source: snapshot}
+  - {name: Ghana,                   group: L, pot: 4, elo: 1690, source: approx}
+  - {name: Panama,                  group: L, pot: 3, elo: 1733, source: snapshot}

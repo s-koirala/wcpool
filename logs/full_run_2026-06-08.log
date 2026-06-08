@@ -1,4 +1,4 @@
-ReproLog: logs\reproducibility\repro_log_52c394ecfb8545d2b398c36b8fa88ac8.json
+ReproLog: logs\reproducibility\repro_log_a2bcc02bb36e41b2bdc95684d3f4cccd.json
 Grid: 25 draws x 2000 sims = 50000 eval tournaments/cell, regime=resampled
 Main grid:
   [elo_2026] top-8 title share=0.913, beta=1.776

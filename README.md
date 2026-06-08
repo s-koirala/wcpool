@@ -31,7 +31,8 @@ uv run pytest                     # unit + integration tests
 uv run python scripts/run_experiment.py --quick   # smoke run (small sim count)
 uv run python scripts/run_experiment.py           # full run (>=50k tournaments/cell)
 uv run python scripts/make_plots.py               # tables, figures, recommendation
-uv run python scripts/build_report_html.py        # self-contained layperson report (HTML)
+uv run python scripts/build_report_html.py        # self-contained report (HTML)
+uv run python scripts/build_report_pdf.py          # report as PDF (via headless Chrome/Edge)
 ```
 
 ## Plain-English report
@@ -39,7 +40,7 @@ uv run python scripts/build_report_html.py        # self-contained layperson rep
 A non-technical write-up for pool organisers (definitions, results, figures, the cons of
 arbitrary scoring, and the final answer on teams-per-person and scoring) is at
 [docs/report_draft_pool_layperson_2026-06-08.md](docs/report_draft_pool_layperson_2026-06-08.md)
-(open the rendered `.html` of the same name for an images-embedded, shareable version).
+(rendered to a shareable, images-embedded `.html` and `.pdf` of the same name).
 
 ## Status
 

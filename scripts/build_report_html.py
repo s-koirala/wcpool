@@ -42,6 +42,17 @@ code { background: #edf2f7; padding: .08em .35em; border-radius: 4px; font-size:
 hr { border: none; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
 blockquote { color: #555; border-left: 4px solid #cbd5e0; margin: 1rem 0; padding: .2rem 1rem; }
 a { color: #2b6cb0; }
+
+/* Print / PDF: fill the page, keep tables, images and headings from splitting across pages. */
+@page { size: A4; margin: 16mm; }
+@media print {
+  body { max-width: none; margin: 0; font-size: 11.5pt; }
+  h1 { font-size: 20pt; }
+  h2 { font-size: 15pt; margin-top: 1.2rem; break-after: avoid; }
+  h3 { break-after: avoid; }
+  table, img, tr { break-inside: avoid; }
+  a { color: #1a1a1a; text-decoration: none; }
+}
 """.strip()
 
 TEMPLATE = """<!DOCTYPE html>

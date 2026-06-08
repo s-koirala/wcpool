@@ -47,5 +47,3 @@ arbitrary scoring, and the final answer on teams-per-person and scoring) is at
 Built under the `audit-remediate-loop` QC pattern. Residual risk recorded at the bottom of
 [docs/assumptions.md](docs/assumptions.md) after the final audit round.
 
-## AI-assistance
-

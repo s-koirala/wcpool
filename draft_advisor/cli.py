@@ -182,48 +182,88 @@ def _echo_pick(board: B.Board, seat: int, overall: int, rnd: int, team: int, is_
         print(f"   seat {seat + 1} took {name}  (#{overall} R{rnd})")
 
 
-def run(state: A.DraftState, board: B.Board, rng: np.random.Generator) -> None:
+def print_turn_check(state: A.DraftState, board: B.Board) -> None:
+    """One-line state confirmation so you can catch a drifted ('muffled') snake order."""
+    avail = int(state.available_mask(board.n_teams).sum())
+    nslot = len(state.picks)
+    pointer = "complete" if state.is_complete else f"seat {int(state.sequence[nslot]) + 1}"
+    agree = "matches" if state.is_our_turn() else "DIFFERS -> manual override"
+    print(f"   [confirm] you are seat {state.our_seat + 1} | you own "
+          f"{len(state.our_roster())}/{state.n_rounds} | {avail} available | "
+          f"snake pointer: {pointer} ({agree})")
+
+
+def _show_recommendation(state: A.DraftState, board: B.Board, rng: np.random.Generator) -> None:
+    """On-demand recommendation for our next pick, valid regardless of the snake counter."""
+    if state.is_complete:
+        print("   draft complete -- no pick to make")
+        return
+    if len(state.our_roster()) >= state.n_rounds:
+        print("   you already hold all your picks")
+        return
+    print_turn_check(state, board)
+    print_recommendation(A.recommend(state, board, rng=rng), state)
+
+
+def _cancellable(action, *args) -> bool:
+    """Run a possibly-slow output action; Ctrl-C cancels just that action, not the session."""
+    try:
+        action(*args)
+        return True
+    except KeyboardInterrupt:
+        print("\n   (cancelled)")
+        return False
+
+
+def _show_standing(state: A.DraftState, board: B.Board) -> None:
+    print_standing(A.standing(state, board))
+
+
+def run(state: A.DraftState, board: B.Board, rng: np.random.Generator, auto: bool = True) -> None:
     print_banner(state, board)
     print_state(state, board)
-    _render_turn(state, board, rng)
+    if auto:
+        _cancellable(_render_turn, state, board, rng)
     while not state.is_complete:
         overall, rnd, seat = _pick_context(state)
         is_us = seat == state.our_seat
         try:
             token = input(_prompt(overall, rnd, seat, is_us)).strip()
-        except (EOFError, KeyboardInterrupt):
+        except EOFError:  # piped input exhausted / Ctrl-D
             print()
             return
+        except KeyboardInterrupt:  # Ctrl-C at the prompt clears the line; only 'quit' exits
+            print("\n   (type 'quit' to exit)")
+            continue
         if not token:
             continue
         cmd = token.lower()
         if cmd in {"quit", "exit", "q"}:
             return
         if cmd == "help":
-            print("   <team> | rec | undo | state | help | quit")
+            print("   <team> | me/rec | undo | state | help | quit  (Ctrl-C cancels a rec)")
             continue
         if cmd == "state":
             print_state(state, board)
+            continue
+        if cmd in {"me", "mine", "rec"}:  # manual trigger -- works even if the order drifted
+            _cancellable(_show_recommendation, state, board, rng)
             continue
         if cmd == "undo":
             if state.picks:
                 removed = state.picks.pop()
                 print(f"   undone: {board.names[removed]}")
-                _render_turn(state, board, rng)  # re-render the rolled-back turn
+                if auto:
+                    _cancellable(_render_turn, state, board, rng)  # re-render the rolled-back turn
             else:
                 print("   nothing to undo")
-            continue
-        if cmd == "rec":
-            if state.is_our_turn():
-                print_recommendation(A.recommend(state, board, rng=rng), state)
-            else:
-                print("   not your turn")
             continue
         if _log_pick(state, board, token):
             _echo_pick(board, seat, overall, rnd, state.picks[-1], is_us)
             if is_us:
-                print_standing(A.standing(state, board))
-            _render_turn(state, board, rng)
+                _cancellable(_show_standing, state, board)
+            if auto:
+                _cancellable(_render_turn, state, board, rng)
     print_summary(A.post_draft_summary(state, board))
 
 
@@ -237,6 +277,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--n-sims", type=int, default=B.DEFAULT_N_SIMS)
     parser.add_argument("--seed", type=int, default=B.DEFAULT_SEED)
     parser.add_argument("--rng-seed", type=int, default=0, help="seed for the live sampler")
+    parser.add_argument("--manual", action="store_true",
+                        help="don't auto-show the rec on your turn; type 'me' to trigger")
     args = parser.parse_args(argv)
 
     if not (1 <= args.seat <= args.players):
@@ -245,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
           file=sys.stderr)
     board = B.load_or_build(ladder=args.ladder, n_sims=args.n_sims, seed=args.seed)
     state = A.DraftState(n_drafters=args.players, n_rounds=args.rounds, our_seat=args.seat - 1)
-    run(state, board, np.random.default_rng(args.rng_seed))
+    run(state, board, np.random.default_rng(args.rng_seed), auto=not args.manual)
     return 0
 
 

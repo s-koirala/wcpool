@@ -172,6 +172,68 @@ def complete_and_score(
     return _score(board, _rosters_from_picks(picks, state.n_drafters, state.n_rounds))
 
 
+def _forward_order(remaining: dict[int, int], n_drafters: int) -> list[int]:
+    """Snake-ordered drafter ids for the remaining picks, given each drafter's remaining count.
+
+    Position-agnostic: derived purely from how many picks each drafter still needs (read off
+    their current roster sizes), so it does not depend on the live order matching the assumed
+    snake schedule. Used when the order has drifted ("muffled") or a rec is requested off-turn.
+    """
+    rem = dict(remaining)
+    order: list[int] = []
+    fwd = True
+    while sum(rem.values()) > 0:
+        seq = range(n_drafters) if fwd else range(n_drafters - 1, -1, -1)
+        for d in seq:
+            if rem[d] > 0:
+                order.append(d)
+                rem[d] -= 1
+        fwd = not fwd
+    return order
+
+
+def complete_for_our_pick(
+    state: DraftState, board: Board, candidate: int, temperature: float, rng
+) -> np.ndarray:
+    """Score the pool with ``candidate`` assigned to OUR seat, completing the rest by remaining
+    counts (snake-ordered). Position-agnostic, so it yields a recommendation even when the live
+    order has drifted from the snake schedule."""
+    n_d, n_r = state.n_drafters, state.n_rounds
+    rosters_l = {d: list(state.roster_of(d)) for d in range(n_d)}
+    rosters_l[state.our_seat].append(candidate)
+    available = np.ones(board.n_teams, dtype=bool)
+    for teams in rosters_l.values():
+        for t in teams:
+            available[t] = False
+    remaining = {d: n_r - len(rosters_l[d]) for d in range(n_d)}
+    ev = board.team_ev
+    for d in _forward_order(remaining, n_d):
+        avail_idx = np.where(available)[0]
+        if avail_idx.size == 0:
+            break
+        if d == state.our_seat or temperature == 0:
+            choice = opponent.greedy_pick(ev, avail_idx)
+        else:
+            choice = opponent.sample_pick(ev, avail_idx, temperature, rng)
+        rosters_l[d].append(int(choice))
+        available[int(choice)] = False
+    rosters = np.full((n_d, n_r), -1, dtype=np.int64)
+    for d in range(n_d):
+        for i, t in enumerate(rosters_l[d]):
+            rosters[d, i] = t
+    return _score(board, rosters)
+
+
+def _our_pick_scores(
+    state: DraftState, board: Board, candidate: int, temperature: float, rng
+) -> np.ndarray:
+    """Pool scores with ``candidate`` as our next pick: exact snake completion at a genuine
+    our-turn, else the position-agnostic completion (so a rec is always available)."""
+    if state.is_our_turn():
+        return complete_and_score(state.picks + [candidate], state, board, temperature, rng)
+    return complete_for_our_pick(state, board, candidate, temperature, rng)
+
+
 # --- recommendation --------------------------------------------------------------------
 
 
@@ -226,14 +288,16 @@ def recommend(
 ) -> Recommendation:
     """Rank every available team by ``W`` at the τ=0 baseline, with tiers, ceiling, look-ahead.
 
-    The ranking is deterministic; ``rng`` (and ``r_samples``) drive only the opponent-
-    robustness sweep over the top candidates and the reach/wait look-ahead.
+    Recommends our *next* pick. It is valid at a genuine our-turn (exact snake completion) and
+    off-turn (position-agnostic completion), so it can be requested on demand even if the live
+    order has drifted from the snake schedule. The ranking is deterministic; ``rng`` (and
+    ``r_samples``) drive only the opponent-robustness sweep and the reach/wait look-ahead.
     """
-    if not state.is_our_turn():
-        raise ValueError("recommend() called when it is not our turn")
     rng = np.random.default_rng(0) if rng is None else rng
     temps = opponent.temperature_grid(board.team_ev)
     avail = np.where(state.available_mask(board.n_teams))[0]
+    if avail.size == 0 or len(state.our_roster()) >= state.n_rounds:
+        return Recommendation(rows=[], temps=temps, cliffs=[], reach_wait=None)
     ceil_all = objective.ceiling_deep_run(board.points, board.stages, DEEP_STAGE)
     owned = state.our_roster()
 
@@ -241,7 +305,7 @@ def recommend(
     base = []
     for c in avail:
         c = int(c)
-        scores = complete_and_score(state.picks + [c], state, board, 0.0, rng)
+        scores = _our_pick_scores(state, board, c, 0.0, rng)
         pp = objective.placement_probs(scores, state.our_seat)
         base.append(
             {
@@ -306,7 +370,7 @@ def _robustness_sweep(
             seed = np.random.SeedSequence([ti, rep, _SWEEP_STREAM])
             for t in teams:
                 rng = np.random.default_rng(seed)
-                scores = complete_and_score(state.picks + [t], state, board, tau, rng)
+                scores = _our_pick_scores(state, board, t, tau, rng)
                 totals[t] += objective.objective_W(scores, state.our_seat, state.n_drafters)
         w_by_temp[tau] = {t: totals[t] / reps for t in teams}
 

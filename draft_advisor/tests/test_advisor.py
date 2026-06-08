@@ -69,11 +69,20 @@ def test_score_rejects_partial_roster(make_board):
         A._score(bd, st.rosters())
 
 
-def test_recommend_requires_our_turn(make_board):
-    bd = make_board(np.ones((10, 6)))
-    st = A.DraftState(2, 2, 0, picks=[0])  # seq[1]=1 -> opponent's turn
-    with pytest.raises(ValueError):
-        A.recommend(st, bd)
+def test_recommend_works_off_turn(make_board):
+    # snake order may drift ("muffled"); recommend must still produce our next-pick rec off-turn
+    rng = np.random.default_rng(5)
+    bd = make_board(np.abs(rng.normal(5, 2, size=(150, 6))))
+    st = A.DraftState(2, 2, 0, picks=[0])  # we own team 0; snake now points to seat 2
+    assert not st.is_our_turn()
+    rec = A.recommend(st, bd)
+    assert len(rec.rows) == 5  # 6 teams - 1 owned
+    assert all(r.team != 0 for r in rec.rows)  # owned team excluded as a candidate
+
+
+def test_forward_order_is_snake_over_remaining():
+    assert A._forward_order({0: 1, 1: 2}, 2) == [0, 1, 1]
+    assert A._forward_order({0: 2, 1: 2}, 2) == [0, 1, 1, 0]
 
 
 def test_complete_and_score_shape(make_board):

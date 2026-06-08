@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from wcpool import draft, metrics
 
@@ -39,6 +40,20 @@ def test_variance_policy_targets_variance():
     var[10] = 100.0  # single high-variance team
     res = draft.draft_variance(var, 6, 4)
     assert res["rosters"][0, 0] == 10  # first overall pick grabs it
+
+
+@pytest.mark.parametrize("p", [6, 7, 8])
+def test_draft_generalises_to_participant_count(p):
+    rng = np.random.default_rng(0)
+    ev = rng.random(48)
+    res = draft.draft_ev_greedy(ev, n_drafters=p, n_rounds=6)
+    rosters = res["rosters"]
+    drafted = rosters[rosters >= 0]
+    assert len(drafted) == p * 6  # all picks made
+    assert len(set(drafted.tolist())) == p * 6  # no team drafted twice
+    wp = metrics.win_probability(metrics.pool_scores(rng.random((200, 48)), rosters))
+    assert wp.shape == (p,)
+    assert wp.sum() == pytest.approx(1.0)  # win prob distributes over all participants
 
 
 def test_best_response_not_worse_than_ev_greedy():

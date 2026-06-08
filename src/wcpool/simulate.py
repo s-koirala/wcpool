@@ -126,16 +126,16 @@ class CellAccumulator:
     draw_slot_spread: list = dc_field(default_factory=list)
 
 
-def _run_draft(policy, n_rounds, team_ev, team_var, points_decision, br_slot):
+def _run_draft(policy, n_rounds, team_ev, team_var, points_decision, br_slot, n_drafters):
     """Build rosters. Best-response decides on ``points_decision`` (the EV/model batch),
     never on the held-out eval batch it is later scored against."""
     if policy == "ev_greedy":
-        return draft_mod.draft_ev_greedy(team_ev, N_DRAFTERS, n_rounds)
+        return draft_mod.draft_ev_greedy(team_ev, n_drafters, n_rounds)
     if policy == "variance":
-        return draft_mod.draft_variance(team_var, N_DRAFTERS, n_rounds)
+        return draft_mod.draft_variance(team_var, n_drafters, n_rounds)
     if policy == "best_response":
         return draft_mod.draft_best_response(
-            points_decision, team_ev, br_slot, N_DRAFTERS, n_rounds
+            points_decision, team_ev, br_slot, n_drafters, n_rounds
         )
     raise ValueError(f"unknown policy {policy!r}")
 
@@ -164,8 +164,17 @@ def run_strength_config(
     regime: str = "resampled",
     br_slot: int = 0,
     cfg_id: int = 0,
+    n_drafters: int = N_DRAFTERS,
 ) -> list[dict]:
-    """Run all cells for one strength config; return tidy per-cell metric records."""
+    """Run all cells for one strength config; return tidy per-cell metric records.
+
+    ``n_drafters`` (default 6) is the number of pool participants. Requires
+    ``n_drafters * max(n_values) <= 48`` (cannot draft more teams than exist).
+    """
+    if n_drafters * max(n_values) > N_TEAMS:
+        raise ValueError(
+            f"{n_drafters} drafters x {max(n_values)} teams exceeds the {N_TEAMS}-team field"
+        )
     acc: dict[tuple, CellAccumulator] = {}
 
     # In the fixed regime the draw never changes, so collapse to a single larger batch.
@@ -196,7 +205,9 @@ def run_strength_config(
                 for policy in policies:
                     key = (ladder_name, n, policy)
                     # Decisions use the EV (model) batch; scoring uses the eval batch.
-                    res = _run_draft(policy, n, team_ev, team_var, points_ev, br_slot)
+                    res = _run_draft(
+                        policy, n, team_ev, team_var, points_ev, br_slot, n_drafters
+                    )
                     rosters = res["rosters"]
                     scores = M.pool_scores(points_eval, rosters)
                     a = acc.setdefault(key, CellAccumulator())

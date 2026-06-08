@@ -1,7 +1,7 @@
 [project]
 name = "wcpool"
 version = "0.1.0"
-description = "Monte Carlo environment for evaluating scoring/draft designs in a 6-person 2026 FIFA World Cup team-draft pool"
+description = "Monte Carlo environment for evaluating scoring/draft designs in a 6-8 person 2026 FIFA World Cup team-draft pool"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -35,5 +35,6 @@ target-version = "py311"
 select = ["E", "F", "I", "B", "UP", "NPY"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "draft_advisor/tests"]
+pythonpath = [".", "src"]
 addopts = "-q"

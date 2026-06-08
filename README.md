@@ -49,5 +49,3 @@ Built under the `audit-remediate-loop` QC pattern. Residual risk recorded at the
 
 ## AI-assistance
 
-Built with Claude Code (Opus 4.8). Role: scaffolding, implementation, audit. See
-[docs/assumptions.md](docs/assumptions.md) for modeling provenance and the reproducibility log in [logs/](logs).

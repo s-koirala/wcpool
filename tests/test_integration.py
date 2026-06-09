@@ -7,8 +7,26 @@ import pytest
 
 from wcpool import simulate
 from wcpool.config import load_field
+from wcpool.scoring import ScoringScheme
 
 CONFIG = Path(__file__).resolve().parents[1] / "config" / "ratings_elo_2026.yaml"
+
+
+def test_scheme_key_mix0_nondefault_group_points_do_not_alias_bare_ladder():
+    # _scheme_key aliasing invariant (finding 8): a pure terminal shim (w_pts=1, d_pts=0, mix=0)
+    # collapses to the BARE ladder name (the historic 3-tuple cell key, for byte-compat with the
+    # participant-sweep consumers). But a mix=0 scheme with NON-default group points
+    # (w_pts=2, d_pts=1) scores IDENTICALLY (the group layer never enters team_points at mix=0) yet
+    # is a DISTINCT request, so it must key on the full 4-tuple identity and NOT alias the bare name
+    # -- otherwise the two requests would collide in one cell.
+    assert simulate._scheme_key(ScoringScheme("linear", 1.0, 0.0, 0.0)) == "linear"
+    assert simulate._scheme_key(ScoringScheme("linear", 2.0, 1.0, 0.0)) == ("linear", 2.0, 1.0, 0.0)
+    # The two keys are distinct objects/values (no aliasing), despite identical mix=0 scoring.
+    assert simulate._scheme_key(ScoringScheme("linear", 2.0, 1.0, 0.0)) != simulate._scheme_key(
+        ScoringScheme("linear", 1.0, 0.0, 0.0)
+    )
+    # Any mix > 0 also keys on the full identity tuple.
+    assert simulate._scheme_key(ScoringScheme("linear", 1.0, 0.0, 0.2)) == ("linear", 1.0, 0.0, 0.2)
 
 
 def test_load_field_structure():

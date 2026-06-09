@@ -38,3 +38,6 @@ select = ["E", "F", "I", "B", "UP", "NPY"]
 testpaths = ["tests", "draft_advisor/tests"]
 pythonpath = [".", "src"]
 addopts = "-q"
+markers = [
+    "slow: spec-budget validation runs (minutes); part of the default suite, deselect with -m 'not slow'",
+]

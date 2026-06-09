@@ -2,7 +2,13 @@
 
 Usage (run from the repo root)::
 
-    uv run python -m draft_advisor.cli --players 8 --rounds 4 --ladder triangular --seat 5
+    uv run python -m draft_advisor.cli --players 8 --rounds 4 --seat 5
+
+The default scoring is the published recommendation -- the *triangular* knockout shape with a 3:1
+group win:draw layer at the gamma_match landmark (``mix = 0.1``); since the objective W is
+affine-invariant this ranks picks identically to the integer ladder 9/27/54/90/135/189 + 3/1 group
+points. ``--ladder <shape>`` alone reverts to the legacy terminal scoring; ``--w-pts/--d-pts/--mix``
+override the group layer.
 
 Then, as the draft proceeds, type each team AS IT IS PICKED (in pick order). Ownership is
 auto-attributed from the snake schedule, so you tag nothing. Commands:
@@ -63,12 +69,25 @@ def _fmt_pct(x: float) -> str:
     return f"{100 * x:5.1f}%"
 
 
+def _scheme_label(board: B.Board) -> str:
+    """One-line scoring-scheme label for the banner.
+
+    ``mix == 0`` is the legacy terminal ladder (group layer absent), shown as just the shape; a
+    positive ``mix`` shows the group win:draw layer and its convex weight so the live scoring rule
+    is visible at a glance.
+    """
+    if board.mix == 0.0:
+        return f"ladder {board.knockout_ladder} (terminal)"
+    return (f"ladder {board.knockout_ladder} + group {board.w_pts:g}:{board.d_pts:g} "
+            f"@ mix {board.mix:g}")
+
+
 def print_banner(state: A.DraftState, board: B.Board) -> None:
     w = int(round(O.objective_weight(state.n_drafters)))
     draw = "official" if board.use_official_draw else "resampled"
     print(
         f"[A] draft_advisor | players {state.n_drafters} | rounds {state.n_rounds} | "
-        f"ladder {board.ladder} | seat {state.our_seat + 1}/{state.n_drafters}"
+        f"{_scheme_label(board)} | seat {state.our_seat + 1}/{state.n_drafters}"
     )
     print(
         f"    objective W = {w}*P1 + P2 | field {draw} draw, board sha {board.board_sha256[:8]} | "
@@ -267,12 +286,41 @@ def run(state: A.DraftState, board: B.Board, rng: np.random.Generator, auto: boo
     print_summary(A.post_draft_summary(state, board))
 
 
+def _resolve_cli_scheme(args: argparse.Namespace) -> B.ScoringScheme | None:
+    """Map the CLI's scheme flags to a :class:`~wcpool.scoring.ScoringScheme`, or ``None``.
+
+    Default (no scheme flags): return ``None`` so :func:`board.load_or_build` falls back to the
+    published :data:`~draft_advisor.board.RECOMMENDED_SCHEME` (triangular 3:1 @ gamma_match), which
+    -- the objective being affine-invariant -- ranks picks identically to the integer ladder
+    9/27/54/90/135/189 + 3/1 group points. Back-compat: ``--ladder`` *alone* (no group-layer flags)
+    is left as ``None`` here and threaded as the bare ladder into ``load_or_build``, which maps it
+    to ``mix == 0`` -- the legacy terminal scoring. Supplying any of ``--w-pts/--d-pts/--mix`` (or
+    ``--ladder`` together with them) builds an explicit scheme on the chosen ladder.
+    """
+    group_flags_given = any(v is not None for v in (args.w_pts, args.d_pts, args.mix))
+    if not group_flags_given:
+        return None  # let load_or_build resolve: recommended scheme, or `--ladder` -> terminal
+    ladder = args.ladder or B.RECOMMENDED_SCHEME.knockout_ladder
+    w = B.RECOMMENDED_SCHEME.w_pts if args.w_pts is None else args.w_pts
+    d = B.RECOMMENDED_SCHEME.d_pts if args.d_pts is None else args.d_pts
+    mix = B.RECOMMENDED_SCHEME.mix if args.mix is None else args.mix
+    return B.ScoringScheme(ladder, w_pts=w, d_pts=d, mix=mix)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Live World Cup draft-pick advisor")
     parser.add_argument("--players", type=int, required=True, help="number of drafters (7 or 8)")
     parser.add_argument("--rounds", type=int, default=4, help="teams per drafter (default 4)")
-    parser.add_argument("--ladder", default="triangular",
-                        choices=["linear", "triangular", "geometric"])
+    parser.add_argument("--ladder", default=None,
+                        choices=["linear", "triangular", "geometric"],
+                        help="knockout shape; alone (no --w-pts/--d-pts/--mix) = legacy terminal "
+                             "scoring. Default scheme = recommended triangular 3:1 @ gamma_match")
+    parser.add_argument("--w-pts", type=float, default=None,
+                        help="group points per win (enables the group layer; rec default 3)")
+    parser.add_argument("--d-pts", type=float, default=None,
+                        help="group points per draw (enables the group layer; rec default 1)")
+    parser.add_argument("--mix", type=float, default=None,
+                        help="convex weight on the group layer in [0,1] (rec default 0.1)")
     parser.add_argument("--seat", type=int, required=True, help="our snake seat, 1-indexed")
     parser.add_argument("--n-sims", type=int, default=B.DEFAULT_N_SIMS)
     parser.add_argument("--seed", type=int, default=B.DEFAULT_SEED)
@@ -283,9 +331,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if not (1 <= args.seat <= args.players):
         parser.error(f"--seat must be in 1..{args.players}")
-    print(f"building/loading board (ladder={args.ladder}, n_sims={args.n_sims})...",
+    scheme = _resolve_cli_scheme(args)
+    print(f"building/loading board (n_sims={args.n_sims})...", file=sys.stderr)
+    board = B.load_or_build(ladder=args.ladder, n_sims=args.n_sims, seed=args.seed, scheme=scheme)
+    # Report the scheme actually scored, read off the built board, rather than re-deriving it via
+    # the private B._resolve_scheme (single source of truth: load_or_build resolved it once).
+    print(f"board ready (scheme={board.scheme}, board sha {board.board_sha256[:8]})",
           file=sys.stderr)
-    board = B.load_or_build(ladder=args.ladder, n_sims=args.n_sims, seed=args.seed)
     state = A.DraftState(n_drafters=args.players, n_rounds=args.rounds, our_seat=args.seat - 1)
     run(state, board, np.random.default_rng(args.rng_seed), auto=not args.manual)
     return 0

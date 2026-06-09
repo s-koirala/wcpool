@@ -16,6 +16,18 @@ Every recommendation is scored on the joint value board, so bracket collisions a
 into ``W`` automatically (a roster that doubles up a bracket region scores a lower P(1st));
 the collision flag merely names that already-priced effect.
 
+Scoring scheme. The board's ``points`` carry the published recommendation
+(``docs/tables/recommendation_2026-06-09.md``): the *triangular* knockout shape with a 3:1 group
+win:draw layer at the gamma_match landmark (``ScoringScheme("triangular", 3, 1, mix=0.1)`` —
+``draft_advisor.board.RECOMMENDED_SCHEME``). No logic here depends on the scheme: ``recommend`` /
+``_score`` route entirely through ``board.points`` / ``board.team_ev``. The objective
+``W = (n-1)*P(1st) + P(2nd)`` is moreover a *rank* functional of the per-drafter pool scores, hence
+**affine-invariant** — under any ``p -> a*p + c`` (``a > 0``) with equal roster sizes (the snake
+draft guarantees this) every drafter's score, and so the argmax/rank ``W`` reads, is unchanged.
+Therefore scoring under that continuous blend yields pick advice *point-for-point identical* to the
+published integer ladder [9, 27, 54, 90, 135, 189] with 3/1 group points (the two differ only by a
+positive affine map): the live advisor matches the integer recommendation exactly.
+
 Approximation (documented residual, see ``docs/acceptance_criteria.md`` A3): our own future
 picks are completed EV-greedily inside candidate scoring, a one-ply proxy consistent with
 ``wcpool.draft.draft_best_response``. We re-optimise at each real turn, so displayed absolute

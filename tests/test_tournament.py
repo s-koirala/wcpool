@@ -47,7 +47,9 @@ def test_random_pot_draw_structure():
 
 
 def test_group_stage_goal_and_point_conservation(model, groups):
-    pts, gd, gf = T.simulate_group_stage(model, groups, n_sims=200, rng=np.random.default_rng(5))
+    pts, gd, gf, _, _ = T.simulate_group_stage(
+        model, groups, n_sims=200, rng=np.random.default_rng(5)
+    )
     ga = gf - gd
     for g in range(T.N_GROUPS):
         gidx = groups[g]

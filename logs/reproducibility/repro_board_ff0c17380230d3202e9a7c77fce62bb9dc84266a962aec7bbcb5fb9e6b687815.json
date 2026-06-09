@@ -1,0 +1,27 @@
+{
+  "artifact": "draft_advisor.board",
+  "timestamp_utc": "2026-06-09T22:51:44.609179+00:00",
+  "git_head": "5c4ef6af3dc0580822ee2f89151d43a2502c2ae3",
+  "model_hash": "5c4ef6af3dc0580822ee2f89151d43a2502c2ae3",
+  "pip_freeze_sha256": "fb2d21eb8d15164f8e32b964bfbfd8a50272f70e54e0653d730fb133ba62072b",
+  "env_id": "f8b32000bb682642f50638a6797e7d89a742a8492939775549eeead2fd0bac0a",
+  "numpy_version": "2.4.6",
+  "scipy_version": "1.17.1",
+  "host": "Windows-10-10.0.26200-SP0",
+  "python": "3.11.9",
+  "dataset_checksums": {
+    "field_config_sha256": "f767609961d6d5dc8913ae03db6865f9fe2e19590311805d14f06119216d4bd9",
+    "board_sha256": "ff0c17380230d3202e9a7c77fce62bb9dc84266a962aec7bbcb5fb9e6b687815"
+  },
+  "rng_seed": 20260609,
+  "scoring_scheme": {
+    "knockout_ladder": "triangular",
+    "w_pts": 3.0,
+    "d_pts": 1.0,
+    "mix": 0.1
+  },
+  "ladder": "triangular",
+  "n_sims": 2000,
+  "use_official_draw": true,
+  "cache_path": "draft_advisor/artifacts/board_triangular_w3_d1_m0p1_official_n2000_s20260609.npz"
+}

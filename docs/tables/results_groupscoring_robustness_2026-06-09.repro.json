@@ -1,0 +1,28 @@
+{
+  "artifact": "results_groupscoring_robustness_2026-06-09.csv",
+  "artifact_sha256": "872615e538548825810ca9c1e9f2ad612b6fb8dbbdd3f1f18a8a11bae8b4dbca",
+  "engagement_column_provenance": {
+    "alive_fraction": "Feasibility sanity check only, NOT a discriminating axis: saturates >= 0.999 (cluster SE 0) over the studied 8x6 grid with mix <= 0.5.",
+    "group_variance_share": "HEADLINE engagement axis: estimator-free, monotone in group mass, exactly 0 at gamma=0. Pooled ratio-of-means (comparable to skill_variance_share). Reportable.",
+    "pool_surprise": "PROVISIONAL and NOT independent confirmation of pool_suspense: on this realised-path surrogate pool_surprise is BYTE-IDENTICAL to pool_suspense (the summed squared belief increments are the same statistic read forward vs backward). The genuine forward/backward split is gated on the section-6 nested simulation.",
+    "pool_surprise_group_share": "PROVISIONAL: byte-identical to pool_suspense_group_share on the surrogate (see pool_surprise).",
+    "pool_suspense": "PROVISIONAL / un-gated: k-NN surrogate, one-sidedly biased DOWNWARD by smoothing. The section-6 nested-sim gate validates ONLY the low-mix headline cell (triangular, mix~0.15); it REJECTS at high mass, and the share is non-monotone for geometric where the share is tiny (below the surrogate reliability floor). Do not adopt the level until gated.",
+    "pool_suspense_group_share": "PROVISIONAL: group-phase share of pool_suspense (see pool_suspense)."
+  },
+  "note": "Recommendation rests on the SEED-STABLE PAIRED delta_skill_vs_anchor (+ delta_skill_paired_se) columns, NOT the absolute spearman_mean level. See _attach_paired_delta_skill / audit item 1.",
+  "reprolog": {
+    "git_head": "5c4ef6af3dc0580822ee2f89151d43a2502c2ae3",
+    "log_file": "repro_log_7417f44086ec442287cf0648caac9b5b.json",
+    "log_path": "logs\\reproducibility\\repro_log_7417f44086ec442287cf0648caac9b5b.json",
+    "run_id": "7417f44086ec442287cf0648caac9b5b",
+    "run_tag": "groupscoring_headline_100draws_robustness"
+  },
+  "run": {
+    "n_draws": 25,
+    "n_eval_tournaments_per_cell": 50000,
+    "regime": "resampled",
+    "seed": 20260609,
+    "sims_per_draw": 2000,
+    "suspense_subsample": 512
+  }
+}

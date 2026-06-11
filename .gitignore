@@ -21,3 +21,10 @@ logs/reproducibility/env/
 # OS
 Thumbs.db
 .DS_Store
+
+# local clones of the dashboard repos (independent git repos, not submodules)
+FIFA_pool_2026_dashboard/
+Fifa-Stats-Hub/
+# session tooling + scratch
+.claude/
+logs/_research_tmp/

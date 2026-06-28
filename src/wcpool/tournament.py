@@ -283,11 +283,20 @@ def _play_round(
 
 
 def simulate_tournament(
-    model, groups: np.ndarray, n_sims: int, rng: np.random.Generator
-) -> np.ndarray:
+    model,
+    groups: np.ndarray,
+    n_sims: int,
+    rng: np.random.Generator,
+    return_group_points: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Run ``n_sims`` full tournaments on a fixed ``groups`` draw.
 
-    Returns an ``(n_sims, 48)`` int array of the furthest ``Stage`` each team reached.
+    Returns an ``(n_sims, 48)`` int array of the furthest ``Stage`` each team reached. If
+    ``return_group_points`` is True, returns ``(stages, group_points)`` where
+    ``group_points`` is the ``(n_sims, 48)`` int array of each team's summed 3/1/0
+    group-match points — the same quantity used to rank the group tables, exposed here for
+    the W/D/L scoring variant (``ladders.variant_team_points``). The default keeps the
+    single-array return so existing callers are unaffected.
     """
     pts, gd, gf = simulate_group_stage(model, groups, n_sims, rng)
     lots = rng.random((n_sims, N_TEAMS))  # per-team "drawing of lots" tie-break
@@ -313,4 +322,6 @@ def simulate_tournament(
         winners = _play_round(model, pairs, rng)
         for w in winners:
             stages[rows, w] = stage_value
+    if return_group_points:
+        return stages, pts
     return stages

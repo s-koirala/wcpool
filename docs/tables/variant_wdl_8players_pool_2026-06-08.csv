@@ -1,0 +1,9 @@
+slot,roster,E[score],SD,p5,p50,p95,E[group],E[bonus],P(win),P(top3)
+1,"Spain, Mexico, Norway, Bosnia and Herzegovina, Algeria, Curacao",73.69262,20.891298129498796,40.0,74.0,108.0,25.91962,47.773,0.3418133333333333,0.63414
+2,"Argentina, Croatia, Uruguay, South Africa, United States, Haiti",68.744,18.346713711179994,41.0,67.0,101.0,25.97372,42.77028,0.20882666666666663,0.54518
+3,"France, Japan, Morocco, Czechia, Qatar, Iraq",64.99572,17.901970329592217,37.0,64.0,96.0,24.91312,40.0826,0.15097333333333332,0.48104
+4,"England, Belgium, Paraguay, Egypt, Sweden, Cape Verde",58.56196,16.433295499028794,35.0,57.0,89.0,25.2669,33.29506,0.07554,0.31416
+5,"Brazil, Turkey, Canada, Australia, Panama, Jordan",57.24012,15.869071251513114,35.0,55.0,86.0,25.11842,32.1217,0.05858,0.27728
+6,"Netherlands, Switzerland, Senegal, Ivory Coast, Uzbekistan, Ghana",56.55618,15.719243105429726,34.0,55.0,85.0,24.23768,32.3185,0.04993,0.26912
+7,"Portugal, Germany, Iran, South Korea, Tunisia, DR Congo",56.9552,15.859013618759523,35.0,55.0,86.0,25.24246,31.71274,0.05676,0.27254
+8,"Colombia, Ecuador, Austria, Scotland, Saudi Arabia, New Zealand",57.01912,15.963661059594068,35.0,55.0,87.0,25.093,31.92612,0.05757666666666666,0.27022

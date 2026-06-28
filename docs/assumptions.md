@@ -165,6 +165,36 @@ Exact, prescribed (no free constants); a group-stage exit scores 0 under all thr
 | triangular | 1 | 3 | 6 | 10 | 15 | 21 |
 | geometric | 1 | 2 | 4 | 8 | 16 | 32 |
 
+### 8a. Group-W/D/L + progression-bonus variant ([ladders.py](../src/wcpool/ladders.py))
+
+A requested variant adds **group-stage match points** to a **progression-bonus** ladder, so
+a team's score has two additive components (unlike the three terminal-only ladders above,
+under which a group exit scores 0):
+
+1. **Group match points** — win 3, draw 1, loss 0, summed over a team's 3 group matches
+   (integer 0..9; the same FIFA points already computed for the group table, now also
+   *scored*). Exposed by `simulate_tournament(..., return_group_points=True)`.
+2. **Progression bonus**, awarded once as a team *reaches* each milestone: R32 **+5**,
+   QF **+8**, SF **+12**, win the Cup **+20**. Because each milestone is passed at most once,
+   the total is the cumulative furthest-stage vector below (`ladders.build_cumulative_bonus`
+   derives it from the milestone increments, so the two cannot drift):
+
+   | stage | GROUP | R32 | R16 | QF | SF | FINAL | CHAMPION |
+   |---|---|---|---|---|---|---|---|
+   | bonus | 0 | 5 | 5 | 13 | 25 | 25 | 45 |
+
+   **Spec property (flagged, implemented verbatim):** the spec defines no milestone for
+   reaching the **Round of 16**, nor for *reaching* the **Final** (only for winning it), so
+   those stages add nothing and inherit the running total — a beaten finalist scores the same
+   25 bonus as a beaten semi-finalist. Filling either gap is a one-line edit to the milestone
+   map. **Scope:** match points are scored for the **group stage only** (the requested
+   "win/lose/draw of group stage"); knockout rounds are rewarded through the bonus, not by
+   3/1/0 per knockout win (the engine does not currently track knockout match points).
+
+The 8-participant analysis of this variant is in
+[report_variant_wdl_8players_2026-06-08.md](report_variant_wdl_8players_2026-06-08.md);
+its numbers are in [docs/tables/](tables) (`variant_wdl_8players_*_2026-06-08.csv`).
+
 ## 9. Parameter-selection summary (zero magic numbers)
 
 | Quantity | How set |
